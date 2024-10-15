@@ -1,0 +1,84 @@
+# Specific Project Directories #
+################################
+data/spacetrack
+data/TLEs
+# Compiled source #
+###################
+*.pyc
+*.vscode
+
+# Environment #
+############
+env/
+venv/
+
+# Packages #
+############
+# it's better to unpack these files and commit the raw source
+# git has its own built in compression methods
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# Logs and databases #
+######################
+*.log
+*.out
+*.sql
+*.sqlite
+*.json
+*.console
+
+# Caches #
+######################
+*__pycache__
+*.pytest_cache
+*.cache
+*.tags*
+
+# OS generated files #
+######################
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Data files #
+######################
+*.dat
+*.mat
+*.npy
+*.pickle
+*.dbf
+*.prj
+*.shp
+*.shx
+*.cpg
+*.html
+*.txt
+*.tle
+*.temptle
+
+# Backup files #
+######################
+*.m~
+*.xls#
+*.xlsx#
+*.doc#
+*.docx#
+*.ppt#
+*.csv#
+
+
+*.csv
+*.icloud
+*.nc
+*.nc4
