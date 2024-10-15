@@ -38,7 +38,9 @@ o = spherapy.orbit.Orbit.fromOrbitalParam(timespan, body='Earth', a=6978, ecc=0,
 In order to calculate the position of a satellite at any given time, Satplot requires [TLE information](https://en.wikipedia.org/wiki/Two-line_element_set) for each satellite which is accurate for the given time period.  
 TLE data can be obtained from either [Celestrak](https://celestrak.org/) or [Spacetrack](https://www.space-track.org/). 
 Celestrak holds only the most recent TLE data for each satellite, while Spacetrack will provide historical TLE data. Satplot will fall back to using Celestrak if it cannot authenticate access to Spacetrack.  
-In order to use Spacetrack, you must provide your [Spacetrack credentials](https://www.space-track.org/auth/createAccount)
+In order to use Spacetrack, you must provide your [Spacetrack credentials](https://www.space-track.org/auth/createAccount) to spherapy.
+
+- use `spherapy.updater.createCredentials()` to create credentials in the configured location, this will overwrite any existing credentials
 
 ## Configuration
 The configuration for spheraphy is set in an `.ini` style configuration file; `spherapy.conf`.
