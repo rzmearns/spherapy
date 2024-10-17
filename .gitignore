@@ -11,6 +11,8 @@ data/TLEs
 ############
 env/
 venv/
+.venv/
+spherapy-env/
 
 # Packages #
 ############
@@ -24,6 +26,7 @@ venv/
 *.rar
 *.tar
 *.zip
+*.egg-info
 
 # Logs and databases #
 ######################

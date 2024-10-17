@@ -1,12 +1,13 @@
 import pickle
 import configparser
-import spherapy.util.paths_u as paths_u
+from pathlib import Path
 
+pkg_dir = Path(__file__).parents[1]
 config = configparser.ConfigParser()
-config.read('spherapy.conf')
+config.read(f"{pkg_dir.absolute()}/spherapy.conf")
 
-tle_path = paths_u.sanitisePath(config['paths'].get('TLE_Path'))
-spacetrack_cred_path = paths_u.sanitisePath(config['paths'].get('SpaceTrackCredential_Path'))
+tle_path = Path(f"{pkg_dir}/{config['paths'].get('TLE_Path')}")
+spacetrack_cred_path = Path(f"{pkg_dir}/{config['paths'].get('SpaceTrackCredential_Path')}")
 
 
 try:
