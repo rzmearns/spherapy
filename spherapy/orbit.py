@@ -275,8 +275,8 @@ class Orbit(object):
 		-------
 		satplot.Orbit
 		"""
-		sat_list = load.tle_file(tle_path)
-		return cls(timespan, sat_list, type='TLE', astrobodies=astrobodies)
+		skyfld_earth_sats = load.tle_file(tle_path)
+		return cls(timespan, skyfld_earth_sats, type='TLE', astrobodies=astrobodies)
 
 	@classmethod	
 	def multiFromTLE(cls, timespan, tle_path, fp=sys.stdout, astrobodies=True):
