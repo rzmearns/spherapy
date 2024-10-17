@@ -56,10 +56,10 @@ Return ndarray of TimeSpan as astropy.time objects
 ndarray
 
 
-### asDatetime
+### _asDatetime
 
 ```python
-def asDatetime(*args)
+def _asDatetime(*args)
 ```
 
 Return ndarray of TimeSpan as datetime objects	

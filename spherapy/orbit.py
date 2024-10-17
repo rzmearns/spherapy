@@ -123,7 +123,7 @@ class Orbit(object):
 			self.pos = np.empty((timespan.num_steps, 3))
 			self.vel = np.empty((timespan.num_steps, 3))
 
-			for ii, timestep in enumerate(timespan.asDatetime()):	
+			for ii, timestep in enumerate(timespan._asDatetime()):	
 				self.pos[ii, :] = sat.at(skyfld_ts.utc(timestep.replace(tzinfo=timespan.timezone))).position.km 
 				self.vel[ii, :] = sat.at(skyfld_ts.utc(timestep.replace(tzinfo=timespan.timezone))).velocity.km_per_s * 1000
 
@@ -452,12 +452,12 @@ class Orbit(object):
 		if isinstance(time, int):
 			return self.pos[time, :]
 		elif isinstance(time, dt.datetime):
-			closest_time, index = list_u.get_closest(self.timespan.asDatetime(), time)
+			closest_time, index = list_u.get_closest(self.timespan._asDatetime(), time)
 			if abs((closest_time - time).total_seconds()) > 60:
 				logger.warning("{}, is more than 60s from the nearest timestep, choose a smaller timestep".format(time))
 			return self.pos[index, :]
 		elif isinstance(time, astropyTime):
-			closest_time, index = list_u.get_closest(self.timespan.asDatetime(), time.to_datetime())
+			closest_time, index = list_u.get_closest(self.timespan._asDatetime(), time.to_datetime())
 			if abs((closest_time - time.to_datetime()).total_seconds()) > 60:
 				logger.warning("{}, is more than 60s from the nearest timestep, choose a smaller timestep".format(time))
 			return self.pos[index, :]
@@ -487,12 +487,12 @@ class Orbit(object):
 		if isinstance(time, int):
 			return self.vel[time, :]
 		elif isinstance(time, dt.datetime):
-			closest_time, index = list_u.get_closest(self.timespan.asDatetime(), time)
+			closest_time, index = list_u.get_closest(self.timespan._asDatetime(), time)
 			if abs((closest_time - time).total_seconds()) > 60:
 				logger.warning("{}, is more than 60s from the nearest timestep, choose a smaller timestep".format(time))
 			return self.vel[index, :]
 		elif isinstance(time, astropyTime):
-			closest_time, index = list_u.get_closest(self.timespan.asDatetime(), time.to_datetime())
+			closest_time, index = list_u.get_closest(self.timespan._asDatetime(), time.to_datetime())
 			if abs((closest_time - time.to_datetime()).total_seconds()) > 60:
 				logger.warning("{}, is more than 60s from the nearest timestep, choose a smaller timestep".format(time))
 
@@ -552,7 +552,7 @@ class Orbit(object):
 				tspan_skyfld_earthsats = skyfld_earthsats[start_index:end_index+1]
 				tspan_tle_epochs = tle_dates[start_index:end_index+1]
 
-			timesteps = timespan.asDatetime()
+			timesteps = timespan._asDatetime()
 			
 			# tspan stretches across more than 1 TLE
 			# 	-> calculate median date for each TLE pair

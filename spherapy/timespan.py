@@ -116,7 +116,7 @@ class TimeSpan(object):
 		self_copy.end = other.end
 		self_copy.num_steps = self.num_steps + other.num_steps
 		self_copy.time_period = other.end - self_copy.start
-		
+
 		self_copy._timearr = np.hstack((self._timearr, other._timearr))
 
 		return self_copy
