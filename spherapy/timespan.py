@@ -95,8 +95,20 @@ class TimeSpan(object):
 			self._timearr[ii] = self._timearr[ii].replace(tzinfo=self.timezone)
 
     # Make it callable and return the data for that entry
-	def __call__(self, index):
-		return self._asDatetime(index)
+	def __call__(self, idx=None):
+		return self._timearr
+
+	def __getitem__(self, idx=None):
+		if idx == None:
+			return self._timearr
+		elif isinstance(idx, int):
+			return self._timearr[idx]
+		elif isinstance(idx, tuple):
+			return self._timearr[idx[0]:idx[1]:idx[2]]
+		elif isinstance(idx, list):
+			return self._timearr[[idx]]
+		elif isinstance(idx,slice):
+			return self._timearr[idx]
 
 	def __eq__(self, other):
 		if not isinstance(other, TimeSpan):
@@ -135,7 +147,7 @@ class TimeSpan(object):
 		else:
 			return astropyTime(self._timearr, scale=scale)
 
-	def _asDatetime(self, *args):
+	def asDatetime(self, *args):
 		"""
 		Return ndarray of TimeSpan as datetime objects	
 		
