@@ -475,24 +475,32 @@ class Orbit(object):
 
 	def _dfltDataDict(self):
 		d = {}
-		d['timespan'] = None
-		d['gen_type'] = None
-		d['pos'] = None
-		d['vel'] = None
-		d['TLE_epochs'] = None
-		d['period'] = None
-		d['period_steps'] = None
-		d['name'] = None
-		d['sun_pos'] = None
-		d['moon_pos'] = None
-		d['lat'] = None
-		d['lon'] = None
-		d['semi_major'] = None
-		d['ecc'] = None
-		d['inc'] = None
-		d['raan'] = None
-		d['argp'] = None
-		d['mean_nu'] = None
+		# metadata
+		d['name'] = None 		#str
+		d['satcat_id'] = None 	#int
+		d['gen_type'] = None 	#str
+
+		# time data
+		d['timespan'] = None	#spherapy timespan
+		d['TLE_epochs'] = None 	#ndarray(n,) datetimes
+
+		# pos data
+		d['pos'] = None 		#ndarray(3,n)
+		d['vel'] = None 		#ndarray(3,n)
+		d['lat'] = None 		#ndarray(n,)
+		d['lon'] = None 		#ndarray(n,)
+		d['sun_pos'] = None 	#ndarray(3,n)
+		d['moon_pos'] = None 	#ndarray(3,n)
+
+		# orbit_data
+		d['central_body'] = None#str
+		d['period'] = None 		#float
+		d['period_steps'] = None#int
+		d['semi_major'] = None 	#ndarray(n,) [km]
+		d['ecc'] = None 		#ndarray(n,) [radians]
+		d['inc'] = None 		#ndarray(n,) [radians]
+		d['raan'] = None 		#ndarray(n,) [radians]
+		d['argp'] = None 		#ndarray(n,) [radians]
 
 		return d
 
@@ -541,14 +549,21 @@ class Orbit(object):
 				for date in tspan_epoch_middates:
 					trans_indices.append(np.argmin(np.abs(np.vectorize(dt.timedelta.total_seconds)(timesteps-date))))
 
-
+				# skyfield doesn't appear to have a way to concatenate 'Geocentric' objecs
 				sat_rec = tspan_skyfld_earthsats[0].at(skyfld_ts.utc(timesteps[:trans_indices[0]]))
 				pos = sat_rec.position.km.T
 				vel = sat_rec.velocity.km_per_s.T * 1000
 				l, l2 = wgs84.latlon_of(sat_rec)
 				lat = l.degrees
 				lon = l2.degrees
+				ecc = np.tile(sat_rec.model.ecco,trans_indices[0])
+				inc = np.tile(sat_rec.model.inclo,trans_indices[0])
+				semi_major = np.tile(sat_rec.model.a * consts.R_EARTH,trans_indices[0])
+				raan = np.tile(sat_rec.model.nodeo,trans_indices[0])
+				argp = np.tile(sat_rec.model.argpo,trans_indices[0])
 				TLE_epochs = np.tile(tspan_tle_epochs[0],trans_indices[0])
+
+
 
 				for ii in range(len(trans_indices)-1):
 					sat_rec = tspan_skyfld_earthsats[ii+1].at(skyfld_ts.utc(timesteps[trans_indices[ii]:trans_indices[ii+1]]))
@@ -557,8 +572,21 @@ class Orbit(object):
 					l, l2 = wgs84.latlon_of(sat_rec)
 					lat = np.concatenate((lat,l.degrees))
 					lon = np.concatenate((lon,l2.degrees))
+					ecc = np.concatenate((ecc,
+										np.tile(sat_rec.model.ecco,trans_indices[ii+1])))
+					inc = np.concatenate((inc,
+										np.tile(sat_rec.model.inclo,trans_indices[ii+1])))
+					semi_major = np.concatenate((semi_major,
+										np.tile(sat_rec.model.a * consts.R_EARTH,trans_indices[ii+1])))
+					raan = np.concatenate((raan,
+										np.tile(sat_rec.model.nodeo,trans_indices[ii+1])))
+					argp = np.concatenate((argp,
+										np.tile(sat_rec.model.argpo,trans_indices[ii+1])))
+
 					TLE_epochs = np.concatenate((TLE_epochs,
 								  				np.tile(tspan_tle_epochs[ii+1],trans_indices[ii+1]-trans_indices[ii])))
+
+
 
 				sat_rec = tspan_skyfld_earthsats[-1].at(skyfld_ts.utc(timesteps[trans_indices[-1]:]))
 				pos = np.vstack((pos, sat_rec.position.km.T))
@@ -566,6 +594,16 @@ class Orbit(object):
 				l, l2 = wgs84.latlon_of(sat_rec)
 				lat = np.concatenate((lat,l.degrees))
 				lon = np.concatenate((lon,l2.degrees))
+				ecc = np.concatenate((ecc,
+									np.tile(sat_rec.model.ecco,trans_indices[-1])))
+				inc = np.concatenate((inc,
+									np.tile(sat_rec.model.inclo,trans_indices[-1])))
+				semi_major = np.concatenate((semi_major,
+									np.tile(sat_rec.model.a * consts.R_EARTH,trans_indices[-1])))
+				raan = np.concatenate((raan,
+									np.tile(sat_rec.model.nodeo,trans_indices[-1])))
+				argp = np.concatenate((argp,
+									np.tile(sat_rec.model.argpo,trans_indices[-1])))
 				TLE_epochs = np.concatenate((TLE_epochs, 
 									  			np.tile(tspan_tle_epochs[ii+1],len(timesteps) - trans_indices[-1])))
 
@@ -578,19 +616,29 @@ class Orbit(object):
 				l, l2 = wgs84.latlon_of(sat_rec)
 				lat = l.degrees
 				lon = l2.degrees
+				ecc = np.tile(sat_rec.model.ecco, len(timesteps))
+				inc = np.tile(sat_rec.model.inclo, len(timesteps))
+				semi_major = np.tile(sat_rec.model.a * consts.R_EARTH, len(timesteps))
+				raan = np.tile(sat_rec.model.nodeo, len(timesteps))
+				argp = np.tile(sat_rec.model.argpo, len(timesteps))
 				TLE_epochs = np.tile(tspan_tle_epochs[0],len(timesteps))
 
 			data['timespan'] = timespan
 			data['gen_type'] = 'propagated from TLE'
+			data['central_body'] = 'Earth'
 			data['pos'] = pos
 			data['vel'] = vel
 			data['lat'] = lat
 			data['lon'] = lon
+			data['ecc'] = ecc
+			data['inc'] = inc
+			data['semi_major'] = semi_major
+			data['raan'] = raan
+			data['argp'] = argp
 			data['TLE_epochs'] = TLE_epochs
 			data['period'] = 2 * np.pi / tspan_skyfld_earthsats[-1].model.no_kozai * 60
 			data['period_steps'] = int(data['period'] / timespan.time_step.total_seconds())
 			data['name'] = tspan_skyfld_earthsats[-1].name
-
 
 			try:
 				self.sat = tspan_skyfld_earthsats[-1]
