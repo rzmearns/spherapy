@@ -94,13 +94,15 @@ class TimeSpan(object):
 		for ii in range(len(self._timearr)):
 			self._timearr[ii] = self._timearr[ii].replace(tzinfo=self.timezone)
 
-
+    # Make it callable and return the data for that entry
+	def __call__(self, index):
+		return self._asDatetime(index)
 
 	def __eq__(self, other):
 		if not isinstance(other, TimeSpan):
 			return NotImplemented
 
-		return np.all(self.asDatetime() == other.asDatetime())
+		return np.all(self._asDatetime() == other._asDatetime())
 
 	def __add__(self, other):
 		self_copy = TimeSpan(self.start)
@@ -133,7 +135,7 @@ class TimeSpan(object):
 		else:
 			return astropyTime(self._timearr, scale=scale)
 
-	def asDatetime(self, *args):
+	def _asDatetime(self, *args):
 		"""
 		Return ndarray of TimeSpan as datetime objects	
 		
@@ -193,7 +195,7 @@ class TimeSpan(object):
 		diff = self._timearr - t_search
 		out = np.abs(np.vectorize(lambda x: x.total_seconds())(diff))
 		res_index = int(np.argmin(out))
-		return self.asDatetime(res_index), res_index
+		return self._asDatetime(res_index), res_index
 
 	def _parseTimeperiod(self, t0, timeperiod):
 		for index, letter in enumerate(timeperiod):
