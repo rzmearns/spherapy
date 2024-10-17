@@ -5,7 +5,7 @@ import logging
 from progressbar import progressbar
 import pickle
 
-from astropy import units as u
+from astropy import units as astropy_units
 
 from hapsira.bodies import Earth, Mars, Sun, Moon
 from hapsira.twobody import Orbit as hapsiraOrbit
@@ -92,7 +92,6 @@ class Orbit(object):
 			skyfld_earthsats = args[1]
 			tle_dates = [sat.epoch.utc_datetime() for sat in skyfld_earthsats]
 			
-
 			# check timespan is valid for provided TLEs
 			if timespan.start < tle_dates[0] - dt.timedelta(days=14):
 				logger.error("Timespan begins before provided TLEs (+14 days)")
@@ -110,76 +109,65 @@ class Orbit(object):
 				if raise_exceptions:
 					raise exceptions.OutOfRange("Timespan ends after provided TLEs (+14 days)")
 
-			data_dict = self.genFromTLE(timespan, tle_dates, skyfld_earthsats, calc_astrobodies)
-			
+			data_dict = self._propagateFromTLE(timespan, tle_dates, skyfld_earthsats, calc_astrobodies)
+		
 
 		elif gen_type == 'FAKE_TLE':
-			satrec = args[1]
 			a = kwargs.get('a')
-			skyfld_ts = load.timescale(builtin=True)
-			sat = EarthSatellite.from_satrec(satrec, skyfld_ts)
-			# self.sat = sat
+			ecc = kwargs.get('ecc')
+			inc = kwargs.get('inc')
+			raan = kwargs.get('raan')
+			argp = kwargs.get('argp')
+			mean_nu = kwargs.get('mean_nu')
 
-			self.pos = np.empty((timespan.num_steps, 3))
-			self.vel = np.empty((timespan.num_steps, 3))
-
-			for ii, timestep in enumerate(timespan.asDatetime()):	
-				self.pos[ii, :] = sat.at(skyfld_ts.utc(timestep.replace(tzinfo=timespan.timezone))).position.km 
-				self.vel[ii, :] = sat.at(skyfld_ts.utc(timestep.replace(tzinfo=timespan.timezone))).velocity.km_per_s * 1000
-
-			self.period = 2 * np.pi / sat.model.no_kozai * 60
-			self.period_steps = int(self.period / timespan.time_step.total_seconds())
-			self.names = [kwargs['name']]
+			data_dict = self._propagateAnalytical(timespan, a, ecc, inc, raan, argp, mean_nu)
+			data_dict['name'] = kwargs['name']
 
 
 		elif gen_type == 'ANALYTICAL':
 			body = kwargs.get('body')
+			a = kwargs.get('a') * astropy_units.km
+			ecc = kwargs.get('ecc') * astropy_units.one
+			inc = kwargs.get('inc') * astropy_units.rad
+			raan = kwargs.get('raan') * astropy_units.rad
+			argp = kwargs.get('argp') * astropy_units.rad
+			mean_nu = kwargs.get('mean_nu') * astropy_units.rad
+						
+			data_dict = self._genAnalytical(timespan, a, ecc, inc, raan, argp, mean_nu)
+			data_dict['name'] = kwargs['name']
 
-			a = kwargs.get('a') * u.km
-			ecc = kwargs.get('ecc') * u.one
-			inc = kwargs.get('inc') * u.deg
-			raan = kwargs.get('raan') * u.deg
-			argp = kwargs.get('argp') * u.deg
-			mean_nu = kwargs.get('mean_nu') * u.deg
-			
-			logger.info("Creating analytical orbit")
-			self.orb = hapsiraOrbit.from_classical(body, a, ecc, inc, raan, argp, mean_nu)
-
-			logger.info("Creating ephemeris for orbit, using timespan")
-			self.ephem = Ephem.from_orbit(self.orb, timespan.asAstropy())
-
-			self.pos = np.asarray(self.ephem.rv()[0])
-			self.vel = np.asarray(self.ephem.rv()[1]) * 1000
-
-			self.period = self.orb.period.unit.in_units('s') * self.orb.period.value
-			self.period_steps = int(self.period / timespan.time_step.total_seconds())
-			self.names = [kwargs['name']]
 
 		elif gen_type == 'POS_LIST':
-			self.pos = args[1]
+			data = self._dfltDataDict()
+			
+			data['timespan'] = timespan
+			data['pos'] = args[1]
 			# Assume linear motion between each position at each timestep; 
 			# Then assume it stops at the last timestep.
-			self.vel = self.pos[1:] - self.pos[:-1]
-			self.vel = np.concatenate((self.vel, np.array([[0, 0, 0]])))
-			self.period = 1
-			self.period_steps = 1
-			self.names = ['Sat from position list']
+			vel = self.pos[1:] - self.pos[:-1]
+			data['vel'] = np.concatenate((self.vel, np.array([[0, 0, 0]])))
+			data['period'] = None
+			data['period_steps'] = 1
+			data['name'] = ['Sat from position list']
 			# Note that this doesn't define a period.
-			logger.warning("Warning: When generating satellite orbit from list of positions, `period` and `period_steps` will not be defined.")
+			logger.warning("Warning: When generating satellite orbit from list of positions, `period` and `period_steps` will not be defined.")			
+			data['gen_type'] = 'position list'
+
 		else: 
 			logger.error("Invalid orbit generation option {}. Valid options are TLE, FAKE_TLE, POS_LIST, and ANALYITCAL.".format(gen_type))
 			raise ValueError("Invalid orbit generation option {}.".format(gen_type))
+
 
 		if calc_astrobodies:
 			logger.info('Creating ephemeris for Sun using timespan')
 			# Timescale for sun position calculation should use TDB, not UTC
 			# The resultant difference is likely very small
 			ephem_sun = Ephem.from_body(Sun, astropyTime(timespan.asAstropy(scale='tdb')), attractor=Earth)
-			data_dict['sun_pos'] = np.asarray(ephem_sun.rv()[0].to(u.km))
+			data_dict['sun_pos'] = np.asarray(ephem_sun.rv()[0].to(astropy_units.km))
 
 			logger.info('Creating ephemeris for Moon using timespan')
 			ephem_moon = Ephem.from_body(Moon, astropyTime(timespan.asAstropy(scale='tdb')), attractor=Earth)
-			data_dict['moon_pos'] = np.asarray(ephem_moon.rv()[0].to(u.km))
+			data_dict['moon_pos'] = np.asarray(ephem_moon.rv()[0].to(astropy_units.km))
 
 		self._attributiseDataDict(data_dict)
 
@@ -218,43 +206,11 @@ class Orbit(object):
 		-------
 		satplot.Orbit
 		"""
-		sat_list = load.tle_file(tle_path)
-		return cls(timespan, sat_list, type='TLE', astrobodies=astrobodies)
-
-	@classmethod	
-	def multiFromTLE(cls, timespan, tle_path, fp=sys.stdout, astrobodies=True):
-		"""Create an orbit from an existing TLE or a list of historical TLEs
-				
-		Parameters
-		----------
-		timespan : {satplot.TimeSpan}
-			Timespan over which orbit is to be simulated
-		tle_path : {path to file containing TLE(s)}
-			A plain text file containing the TLE or list of TLE(s) with each TLE line on a new line in the file.
-		
-		Returns
-		-------
-		satplot.Orbit
-		"""
-		with open(tle_path) as fp:
-			lines = fp.readlines()
-		num_sats = int(len(lines)/3)
-		orbit_list = []
-		for ii in progressbar(range(num_sats)):
-			pc = ii/num_sats*100
-			bar_str = int(pc)*'='
-			space_str = (100-int(pc))*'  '
-			print(f'Loading {pc:.2f}% ({ii} of {num_sats}) |{bar_str}{space_str}|\r')
-			with open('temp.tle','w') as fp:
-				for jj in range(3):
-					fp.write(lines[ii*3+jj])
-			sat_list = load.tle_file('temp.tle')
-			orbit_list.append(cls(timespan, sat_list, type='TLE', astrobodies=astrobodies))
-		return orbit_list
-
+		skyfld_earth_sats = load.tle_file(tle_path)
+		return cls(timespan, skyfld_earth_sats, type='TLE', astrobodies=astrobodies)
 
 	@classmethod
-	def fromPropagatedOrbitalParam(cls, timespan, a=6978, ecc=0, inc=0, raan=0, argp=0, mean_nu=0, name='Fake TLE', astrobodies=True):
+	def fromPropagatedOrbitalParam(cls, timespan, a=6978, ecc=0, inc=0, raan=0, argp=0, mean_nu=0, name='Fake TLE', astrobodies=True):		
 		"""Create an orbit from orbital parameters, propagated using sgp4.
 		
 		Orbits created using this class method will respect gravity corrections such as J4, 
@@ -287,6 +243,7 @@ class Orbit(object):
 		-------
 		satplot.Orbit
 		"""
+
 		if a < consts.R_EARTH + consts.EARTH_MIN_ALT:
 			logger.error("Semimajor axis, {}, is too close to Earth".format(a))
 			raise exceptions.OutOfRange("Semimajor axis, {}, is too close to Earth".format(a))
@@ -306,25 +263,8 @@ class Orbit(object):
 			logger.error("Mean anomaly, {}, is out of range, should be 0 < mean_nu < 360".format(inc))
 			raise exceptions.OutOfRange("Mean anomaly, {}, is out of range, should be 0 < mean_nu < 360".format(inc))
 
-		t0_epoch = epoch_u.datetime2sgp4epoch(timespan.start)
-		satrec = Satrec()
-		mean_motion = orbit_u.calc_meanmotion(a * 1e3)
 
-		satrec.sgp4init(WGS72,		  # gravity model  # noqa: E128
-								'i',  # mode  # noqa: E128
-								1,  # satnum  # noqa: E128
-								t0_epoch,  # mode  # noqa: E128
-								0,  # bstar [/earth radii] # noqa: E128
-								0,  # ndot [revs/day] # noqa: E128
-								0,  # nddot [revs/day^3]  # noqa: E128
-								ecc,  # ecc  # noqa: E128
-								np.deg2rad(argp),  # arg perigee [radians] # noqa: E128
-								np.deg2rad(inc),  # inclination [radians] # noqa: E128
-								np.deg2rad(mean_nu),  # mean anomaly [radians] # noqa: E128
-								mean_motion * 60,  # mean motion [rad/min]  # noqa: E128
-								np.deg2rad(raan))  # raan [radians] # noqa: E126, E128
-
-		return cls(timespan, satrec, a=a, type='FAKE_TLE', astrobodies=astrobodies)
+		return cls(timespan, body=Earth, a=a, ecc=ecc, inc=inc, raan=raan, argp=argp, mean_nu=mean_nu, type='FAKE_TLE', astrobodies=astrobodies)
 		
 	@classmethod
 	def fromAnalyticalOrbitalParam(cls, timespan, body='Earth', a=6978, ecc=0, inc=0, raan=0, argp=0, mean_nu=0, name='Analytical', astrobodies=True):
@@ -402,34 +342,6 @@ class Orbit(object):
 			return pickle.load(fp)
 
 
-	def _parseTLEFile(lines, skyfld_ts=None, skip_names=False): 
-		"""		
-		function taken from skyfield iokit.parse_tle_file() 
-		this could be simplified by using 
-		"""  
-		b0 = b1 = ''
-		for b2 in lines:
-			if (b2.startswith('2 ') and len(b2) >= 69
-				and b1.startswith('1 ') and len(b1) >= 69):
-
-				if not skip_names and b0:
-					b0 = b0.rstrip(' \n\r')
-					if b0.startswith('0 '):
-						b0 = b0[2:]  # Spacetrack 3-line format
-					# name = b0
-				# else:
-				# 	name = None
-
-				line1 = b1.rstrip()
-				line2 = b2.rstrip()
-				# satellite = 
-				yield Satrec.twoline2rv(line1, line2)
-
-				b0 = b1 = '' 
-			else: 
-				b0 = b1 
-				b1 = b2 
-
 	def getPosition(self, time):
 		'''Return the position at the specified index or (closest) time
 				
@@ -503,24 +415,32 @@ class Orbit(object):
 
 	def _dfltDataDict(self):
 		d = {}
-		d['timespan'] = None
-		d['gen_type'] = None
-		d['pos'] = None
-		d['vel'] = None
-		d['TLE_epochs'] = None
-		d['period'] = None
-		d['period_steps'] = None
-		d['name'] = None
-		d['sun_pos'] = None
-		d['moon_pos'] = None
-		d['lat'] = None
-		d['lon'] = None
-		d['semi_major'] = None
-		d['ecc'] = None
-		d['inc'] = None
-		d['raan'] = None
-		d['argp'] = None
-		d['mean_nu'] = None
+		# metadata
+		d['name'] = None 		#str
+		d['satcat_id'] = None 	#int
+		d['gen_type'] = None 	#str
+
+		# time data
+		d['timespan'] = None	#spherapy timespan
+		d['TLE_epochs'] = None 	#ndarray(n,) datetimes
+
+		# pos data
+		d['pos'] = None 		#ndarray(3,n)
+		d['vel'] = None 		#ndarray(3,n)
+		d['lat'] = None 		#ndarray(n,)
+		d['lon'] = None 		#ndarray(n,)
+		d['sun_pos'] = None 	#ndarray(3,n)
+		d['moon_pos'] = None 	#ndarray(3,n)
+
+		# orbit_data
+		d['central_body'] = None#str
+		d['period'] = None 		#float
+		d['period_steps'] = None#int
+		d['semi_major'] = None 	#ndarray(n,) [km]
+		d['ecc'] = None 		#ndarray(n,) [radians]
+		d['inc'] = None 		#ndarray(n,) [radians]
+		d['raan'] = None 		#ndarray(n,) [radians]
+		d['argp'] = None 		#ndarray(n,) [radians]
 
 		return d
 
@@ -528,7 +448,7 @@ class Orbit(object):
 		for k,v in d.items():
 			setattr(self,k,v)
 
-	def genFromTLE(self, timespan, tle_dates, skyfld_earthsats, gen_astrobodies=True) -> dict:
+	def _propagateFromTLE(self, timespan, tle_dates, skyfld_earthsats, gen_astrobodies=True) -> dict:
 			
 			data = self._dfltDataDict()
 			skyfld_ts = load.timescale(builtin=True)
@@ -569,14 +489,21 @@ class Orbit(object):
 				for date in tspan_epoch_middates:
 					trans_indices.append(np.argmin(np.abs(np.vectorize(dt.timedelta.total_seconds)(timesteps-date))))
 
-
+				# skyfield doesn't appear to have a way to concatenate 'Geocentric' objecs
 				sat_rec = tspan_skyfld_earthsats[0].at(skyfld_ts.utc(timesteps[:trans_indices[0]]))
 				pos = sat_rec.position.km.T
 				vel = sat_rec.velocity.km_per_s.T * 1000
 				l, l2 = wgs84.latlon_of(sat_rec)
 				lat = l.degrees
 				lon = l2.degrees
+				ecc = np.tile(sat_rec.model.ecco,trans_indices[0])
+				inc = np.tile(sat_rec.model.inclo,trans_indices[0])
+				semi_major = np.tile(sat_rec.model.a * consts.R_EARTH,trans_indices[0])
+				raan = np.tile(sat_rec.model.nodeo,trans_indices[0])
+				argp = np.tile(sat_rec.model.argpo,trans_indices[0])
 				TLE_epochs = np.tile(tspan_tle_epochs[0],trans_indices[0])
+
+
 
 				for ii in range(len(trans_indices)-1):
 					sat_rec = tspan_skyfld_earthsats[ii+1].at(skyfld_ts.utc(timesteps[trans_indices[ii]:trans_indices[ii+1]]))
@@ -585,8 +512,21 @@ class Orbit(object):
 					l, l2 = wgs84.latlon_of(sat_rec)
 					lat = np.concatenate((lat,l.degrees))
 					lon = np.concatenate((lon,l2.degrees))
+					ecc = np.concatenate((ecc,
+										np.tile(sat_rec.model.ecco,trans_indices[ii+1])))
+					inc = np.concatenate((inc,
+										np.tile(sat_rec.model.inclo,trans_indices[ii+1])))
+					semi_major = np.concatenate((semi_major,
+										np.tile(sat_rec.model.a * consts.R_EARTH,trans_indices[ii+1])))
+					raan = np.concatenate((raan,
+										np.tile(sat_rec.model.nodeo,trans_indices[ii+1])))
+					argp = np.concatenate((argp,
+										np.tile(sat_rec.model.argpo,trans_indices[ii+1])))
+
 					TLE_epochs = np.concatenate((TLE_epochs,
 								  				np.tile(tspan_tle_epochs[ii+1],trans_indices[ii+1]-trans_indices[ii])))
+
+
 
 				sat_rec = tspan_skyfld_earthsats[-1].at(skyfld_ts.utc(timesteps[trans_indices[-1]:]))
 				pos = np.vstack((pos, sat_rec.position.km.T))
@@ -594,6 +534,16 @@ class Orbit(object):
 				l, l2 = wgs84.latlon_of(sat_rec)
 				lat = np.concatenate((lat,l.degrees))
 				lon = np.concatenate((lon,l2.degrees))
+				ecc = np.concatenate((ecc,
+									np.tile(sat_rec.model.ecco,trans_indices[-1])))
+				inc = np.concatenate((inc,
+									np.tile(sat_rec.model.inclo,trans_indices[-1])))
+				semi_major = np.concatenate((semi_major,
+									np.tile(sat_rec.model.a * consts.R_EARTH,trans_indices[-1])))
+				raan = np.concatenate((raan,
+									np.tile(sat_rec.model.nodeo,trans_indices[-1])))
+				argp = np.concatenate((argp,
+									np.tile(sat_rec.model.argpo,trans_indices[-1])))
 				TLE_epochs = np.concatenate((TLE_epochs, 
 									  			np.tile(tspan_tle_epochs[ii+1],len(timesteps) - trans_indices[-1])))
 
@@ -606,19 +556,29 @@ class Orbit(object):
 				l, l2 = wgs84.latlon_of(sat_rec)
 				lat = l.degrees
 				lon = l2.degrees
+				ecc = np.tile(sat_rec.model.ecco, len(timesteps))
+				inc = np.tile(sat_rec.model.inclo, len(timesteps))
+				semi_major = np.tile(sat_rec.model.a * consts.R_EARTH, len(timesteps))
+				raan = np.tile(sat_rec.model.nodeo, len(timesteps))
+				argp = np.tile(sat_rec.model.argpo, len(timesteps))
 				TLE_epochs = np.tile(tspan_tle_epochs[0],len(timesteps))
 
 			data['timespan'] = timespan
 			data['gen_type'] = 'propagated from TLE'
+			data['central_body'] = 'Earth'
 			data['pos'] = pos
 			data['vel'] = vel
 			data['lat'] = lat
 			data['lon'] = lon
+			data['ecc'] = ecc
+			data['inc'] = inc
+			data['semi_major'] = semi_major
+			data['raan'] = raan
+			data['argp'] = argp
 			data['TLE_epochs'] = TLE_epochs
 			data['period'] = 2 * np.pi / tspan_skyfld_earthsats[-1].model.no_kozai * 60
 			data['period_steps'] = int(data['period'] / timespan.time_step.total_seconds())
 			data['name'] = tspan_skyfld_earthsats[-1].name
-
 
 			try:
 				self.sat = tspan_skyfld_earthsats[-1]
@@ -628,26 +588,90 @@ class Orbit(object):
 
 			return data
 
-	# def save(self):
-	# 	if gen_type == 'TLE':
-	# 		file_name = f'orbit_TLE_{self.sat.model.satnum}_{self.sat.jdsatepoch}.pickle'
-
-	# 	elif gen_type == 'ANALYTICAL':			
-	# 		start = timespan.start.strftime('%s')
-	# 		step = timespan.time_step.days * 86400 + timespan.time_step.seconds
-	# 		period = timespan.time_period.days * 86400 + timespan.time_period.seconds
-	# 		file_name = f'orbit_ANLT_{start}_{step}_{period}_{self.orb.epoch}_{self.orb.a}_{self.orb.ecc}_{self.orb.inc}_{self.orb.raan}_{self.orb.argp}_{self.orb.nu}.pickle'
-
-	# 	elif gen_type == 'FAKE_TLE':
-	# 		file_name = f'orbit_FAKETLE_{self.sat.model.satnum}_{self.sat.jdsatepoch}_{self.sat.ecco}_{self.sat.inclo}_{self.sat.nodeo}_{self.sat.argpo}_{self.sat.mo}.pickle'
+	def _genAnalytical(self, timespan, body, a, ecc, inc, raan, argp, mean_nu):
 		
-	# 	elif gen_type == 'FILE':
-	# 		file_name = f'orbit_genfrom_{self.filename}.pickle'
+		data = self._dfltDataDict()
+		logger.info("Creating analytical orbit")
+		orb = hapsiraOrbit.from_classical(body, a, ecc, inc, raan, argp, mean_nu)		
+		logger.info("Creating ephemeris for orbit, using timespan")
+		ephem = Ephem.from_orbit(orb, timespan.asAstropy())
 
-	# 	elif gen_type == 'POS_LIST':
-	# 		file_name = 'pos_list'
+		pos = np.asarray(ephem.rv()[0])
+		vel = np.asarray(ephem.rv()[1]) * 1000
 
-	# 	with open(f'data/orbits/{file_name}', 'wb') as fp:
-	# 		pickle.dump(self, fp)
+		period = orb.period.unit.in_units('s') * orb.period.value
+		period_steps = int(period / timespan.time_step.total_seconds())
 
-	# 	return file_name
+		data['timespan'] = timespan
+		data['gen_type'] = 'propagated from TLE'
+		data['central_body'] = body
+		data['pos'] = pos
+		data['vel'] = vel
+		data['lat'] = None
+		data['lon'] = None
+		data['ecc'] = ecc.value
+		data['inc'] = inc.value
+		data['semi_major'] = a.value
+		data['raan'] = raan.value
+		data['argp'] = argp.value
+		data['TLE_epochs'] = None
+		data['period'] = period
+		data['period_steps'] = period_steps
+
+		return data
+
+	def _propagateAnalytical(self, timespan, body, a, ecc, inc, raan, argp, mean_nu):
+		
+		data = self._dfltDataDict()
+		skyfld_ts = load.timescale(builtin=True)
+
+		t0_epoch = epoch_u.datetime2sgp4epoch(timespan.start)
+		satrec = Satrec()
+		mean_motion = orbit_u.calc_meanmotion(a * 1e3)
+
+		satrec.sgp4init(WGS72,		  # gravity model  # noqa: E128
+						'i',  # mode  # noqa: E128
+						1,  # satnum  # noqa: E128
+						t0_epoch,  # mode  # noqa: E128
+						0,  # bstar [/earth radii] # noqa: E128
+						0,  # ndot [revs/day] # noqa: E128
+						0,  # nddot [revs/day^3]  # noqa: E128
+						ecc,  # ecc  # noqa: E128
+						argp,  # arg perigee [radians] # noqa: E128
+						inc,  # inclination [radians] # noqa: E128
+						mean_nu,  # mean anomaly [radians] # noqa: E128
+						mean_motion * 60,  # mean motion [rad/min]  # noqa: E128
+						raan)  # raan [radians] # noqa: E126, E128
+
+		skyfld_earthsat = EarthSatellite.from_satrec(satrec, skyfld_ts)
+
+		pos = np.empty((timespan.num_steps, 3))
+		vel = np.empty((timespan.num_steps, 3))
+
+		for ii, timestep in enumerate(timespan.asDatetime()):	
+			pos[ii, :] = skyfld_earthsat.at(skyfld_ts.utc(timestep.replace(tzinfo=timespan.timezone))).position.km 
+			vel[ii, :] = skyfld_earthsat.at(skyfld_ts.utc(timestep.replace(tzinfo=timespan.timezone))).velocity.km_per_s * 1000
+
+		period = 2 * np.pi / skyfld_earthsat.model.no_kozai * 60
+		period_steps = int(period / timespan.time_step.total_seconds())
+			
+		data['timespan'] = timespan
+		data['gen_type'] = 'propagated from orbital param'
+		data['central_body'] = 'Earth'
+		data['pos'] = pos
+		data['vel'] = vel
+		data['lat'] = None
+		data['lon'] = None
+		data['ecc'] = ecc
+		data['inc'] = inc
+		data['semi_major'] = a
+		data['raan'] = raan
+		data['argp'] = argp
+		data['TLE_epochs'] = t0_epoch
+		data['period'] = period
+		data['period_steps'] = period_steps
+
+		return data
+
+	def serialise(self):
+		raise NotImplementedError
