@@ -110,7 +110,7 @@ class Orbit(object):
 				if raise_exceptions:
 					raise exceptions.OutOfRange("Timespan ends after provided TLEs (+14 days)")
 
-			data_dict = self.genFromTLE(timespan, tle_dates, skyfld_earthsats, calc_astrobodies)
+			data_dict = self.propagateFromTLE(timespan, tle_dates, skyfld_earthsats, calc_astrobodies)
 			
 
 		elif gen_type == 'FAKE_TLE':
@@ -508,7 +508,7 @@ class Orbit(object):
 		for k,v in d.items():
 			setattr(self,k,v)
 
-	def genFromTLE(self, timespan, tle_dates, skyfld_earthsats, gen_astrobodies=True) -> dict:
+	def propagateFromTLE(self, timespan, tle_dates, skyfld_earthsats, gen_astrobodies=True) -> dict:
 			
 			data = self._dfltDataDict()
 			skyfld_ts = load.timescale(builtin=True)
