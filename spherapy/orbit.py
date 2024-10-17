@@ -459,34 +459,6 @@ class Orbit(object):
 			return pickle.load(fp)
 
 
-	def _parseTLEFile(lines, ts=None, skip_names=False): 
-		"""		
-		function taken from skyfield iokit.parse_tle_file() 
-		this could be simplified by using 
-		"""  
-		b0 = b1 = ''
-		for b2 in lines:
-			if (b2.startswith('2 ') and len(b2) >= 69
-				and b1.startswith('1 ') and len(b1) >= 69):
-
-				if not skip_names and b0:
-					b0 = b0.rstrip(' \n\r')
-					if b0.startswith('0 '):
-						b0 = b0[2:]  # Spacetrack 3-line format
-					# name = b0
-				# else:
-				# 	name = None
-
-				line1 = b1.rstrip()
-				line2 = b2.rstrip()
-				# satellite = 
-				yield Satrec.twoline2rv(line1, line2)
-
-				b0 = b1 = '' 
-			else: 
-				b0 = b1 
-				b1 = b2 
-
 	def getPosition(self, time):
 		'''Return the position at the specified index or (closest) time
 				
