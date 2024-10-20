@@ -496,11 +496,11 @@ class Orbit(object):
 				l, l2 = wgs84.latlon_of(sat_rec)
 				lat = l.degrees
 				lon = l2.degrees
-				ecc = np.tile(sat_rec.model.ecco,trans_indices[0])
-				inc = np.tile(sat_rec.model.inclo,trans_indices[0])
-				semi_major = np.tile(sat_rec.model.a * consts.R_EARTH,trans_indices[0])
-				raan = np.tile(sat_rec.model.nodeo,trans_indices[0])
-				argp = np.tile(sat_rec.model.argpo,trans_indices[0])
+				ecc = np.tile(tspan_skyfld_earthsats[0].model.ecco,trans_indices[0])
+				inc = np.tile(tspan_skyfld_earthsats[0].model.inclo,trans_indices[0])
+				semi_major = np.tile(tspan_skyfld_earthsats[0].model.a * consts.R_EARTH,trans_indices[0])
+				raan = np.tile(tspan_skyfld_earthsats[0].model.nodeo,trans_indices[0])
+				argp = np.tile(tspan_skyfld_earthsats[0].model.argpo,trans_indices[0])
 				TLE_epochs = np.tile(tspan_tle_epochs[0],trans_indices[0])
 
 
@@ -513,15 +513,15 @@ class Orbit(object):
 					lat = np.concatenate((lat,l.degrees))
 					lon = np.concatenate((lon,l2.degrees))
 					ecc = np.concatenate((ecc,
-										np.tile(sat_rec.model.ecco,trans_indices[ii+1])))
+										np.tile(tspan_skyfld_earthsats[ii+1].model.ecco,trans_indices[ii+1])))
 					inc = np.concatenate((inc,
-										np.tile(sat_rec.model.inclo,trans_indices[ii+1])))
+										np.tile(tspan_skyfld_earthsats[ii+1].model.inclo,trans_indices[ii+1])))
 					semi_major = np.concatenate((semi_major,
-										np.tile(sat_rec.model.a * consts.R_EARTH,trans_indices[ii+1])))
+										np.tile(tspan_skyfld_earthsats[ii+1].model.a * consts.R_EARTH,trans_indices[ii+1])))
 					raan = np.concatenate((raan,
-										np.tile(sat_rec.model.nodeo,trans_indices[ii+1])))
+										np.tile(tspan_skyfld_earthsats[ii+1].model.nodeo,trans_indices[ii+1])))
 					argp = np.concatenate((argp,
-										np.tile(sat_rec.model.argpo,trans_indices[ii+1])))
+										np.tile(tspan_skyfld_earthsats[ii+1].model.argpo,trans_indices[ii+1])))
 
 					TLE_epochs = np.concatenate((TLE_epochs,
 								  				np.tile(tspan_tle_epochs[ii+1],trans_indices[ii+1]-trans_indices[ii])))
@@ -535,15 +535,15 @@ class Orbit(object):
 				lat = np.concatenate((lat,l.degrees))
 				lon = np.concatenate((lon,l2.degrees))
 				ecc = np.concatenate((ecc,
-									np.tile(sat_rec.model.ecco,trans_indices[-1])))
+									np.tile(tspan_skyfld_earthsats[-1].model.ecco,trans_indices[-1])))
 				inc = np.concatenate((inc,
-									np.tile(sat_rec.model.inclo,trans_indices[-1])))
+									np.tile(tspan_skyfld_earthsats[-1].model.inclo,trans_indices[-1])))
 				semi_major = np.concatenate((semi_major,
-									np.tile(sat_rec.model.a * consts.R_EARTH,trans_indices[-1])))
+									np.tile(tspan_skyfld_earthsats[-1].model.a * consts.R_EARTH,trans_indices[-1])))
 				raan = np.concatenate((raan,
-									np.tile(sat_rec.model.nodeo,trans_indices[-1])))
+									np.tile(tspan_skyfld_earthsats[-1].model.nodeo,trans_indices[-1])))
 				argp = np.concatenate((argp,
-									np.tile(sat_rec.model.argpo,trans_indices[-1])))
+									np.tile(tspan_skyfld_earthsats[-1].model.argpo,trans_indices[-1])))
 				TLE_epochs = np.concatenate((TLE_epochs, 
 									  			np.tile(tspan_tle_epochs[ii+1],len(timesteps) - trans_indices[-1])))
 
@@ -556,11 +556,11 @@ class Orbit(object):
 				l, l2 = wgs84.latlon_of(sat_rec)
 				lat = l.degrees
 				lon = l2.degrees
-				ecc = np.tile(sat_rec.model.ecco, len(timesteps))
-				inc = np.tile(sat_rec.model.inclo, len(timesteps))
-				semi_major = np.tile(sat_rec.model.a * consts.R_EARTH, len(timesteps))
-				raan = np.tile(sat_rec.model.nodeo, len(timesteps))
-				argp = np.tile(sat_rec.model.argpo, len(timesteps))
+				ecc = np.tile(tspan_skyfld_earthsats[0].model.ecco, len(timesteps))
+				inc = np.tile(tspan_skyfld_earthsats[0].model.inclo, len(timesteps))
+				semi_major = np.tile(tspan_skyfld_earthsats[0].model.a * consts.R_EARTH, len(timesteps))
+				raan = np.tile(tspan_skyfld_earthsats[0].model.nodeo, len(timesteps))
+				argp = np.tile(tspan_skyfld_earthsats[0].model.argpo, len(timesteps))
 				TLE_epochs = np.tile(tspan_tle_epochs[0],len(timesteps))
 
 			data['timespan'] = timespan
