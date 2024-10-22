@@ -168,6 +168,7 @@ class Orbit(object):
 			logger.info('Creating ephemeris for Moon using timespan')
 			ephem_moon = Ephem.from_body(Moon, astropyTime(timespan.asAstropy(scale='tdb')), attractor=Earth)
 			data_dict['moon_pos'] = np.asarray(ephem_moon.rv()[0].to(astropy_units.km))
+			data_dict['eclipse'] = self._calcEclipse(data_dict['pos'],data_dict['sun_pos'])
 
 		self._attributiseDataDict(data_dict)
 
@@ -431,6 +432,8 @@ class Orbit(object):
 		d['lon'] = None 		#ndarray(n,)
 		d['sun_pos'] = None 	#ndarray(3,n)
 		d['moon_pos'] = None 	#ndarray(3,n)
+		d['alt'] = None 		#ndarray(n,)
+		d['eclipse'] = None 	#ndarray(n,)
 
 		# orbit_data
 		d['central_body'] = None#str
@@ -452,7 +455,6 @@ class Orbit(object):
 			
 			data = self._dfltDataDict()
 			skyfld_ts = load.timescale(builtin=True)
-
 			# Find closest listed TLE to start date
 			start_datetime, start_index = list_u.get_closest(tle_dates, timespan.start)
 			end_datetime, end_index = list_u.get_closest(tle_dates, timespan.end)
@@ -672,6 +674,20 @@ class Orbit(object):
 		data['period_steps'] = period_steps
 
 		return data
+
+	def _calcEclipse(self, pos, sun):
+		earth_ang_size = np.arctan(consts.R_EARTH/consts.AU)
+		neg_S_norm = np.linalg.norm(-sun,axis=1)
+		neg_S_unit = -sun/neg_S_norm[:,None]
+		p_neg_S = pos-sun
+		p_neg_S_norm = np.linalg.norm(p_neg_S,axis=1)
+		p_neg_S_unit = p_neg_S/p_neg_S_norm[:,None]
+		earth_sat_ang_sep = np.arccos(np.sum(neg_S_unit*p_neg_S_unit, axis=1))
+		sunlit_angsep_truth = earth_sat_ang_sep > earth_ang_size
+		sunlit_dist_truth = p_neg_S_norm < neg_S_norm
+		sunlit = np.logical_or(sunlit_angsep_truth, sunlit_dist_truth)
+
+		return np.logical_not(sunlit)
 
 	def serialise(self):
 		raise NotImplementedError
