@@ -12,6 +12,8 @@ from hapsira.twobody import Orbit as hapsiraOrbit
 from hapsira.ephem import Ephem
 
 from sgp4.api import Satrec, WGS72
+from skyfield.framelib import itrs
+
 from astropy.time import Time as astropyTime
 import datetime as dt
 # Don't need to import all of skyfield just for EarthSatellite loading.
@@ -426,6 +428,7 @@ class Orbit(object):
 
 		# pos data
 		d['pos'] = None 		#ndarray(3,n)
+		d['pos_ecef'] = None 		#ndarray(3,n)
 		d['vel'] = None 		#ndarray(3,n)
 		d['lat'] = None 		#ndarray(n,)
 		d['lon'] = None 		#ndarray(n,)
@@ -492,6 +495,7 @@ class Orbit(object):
 				# skyfield doesn't appear to have a way to concatenate 'Geocentric' objecs
 				sat_rec = tspan_skyfld_earthsats[0].at(skyfld_ts.utc(timesteps[:trans_indices[0]]))
 				pos = sat_rec.position.km.T
+				pos_ecef = sat_rec.frame_xyz(itrs).km.T
 				vel = sat_rec.velocity.km_per_s.T * 1000
 				l, l2 = wgs84.latlon_of(sat_rec)
 				lat = l.degrees
@@ -508,6 +512,7 @@ class Orbit(object):
 				for ii in range(len(trans_indices)-1):
 					sat_rec = tspan_skyfld_earthsats[ii+1].at(skyfld_ts.utc(timesteps[trans_indices[ii]:trans_indices[ii+1]]))
 					pos = np.vstack((pos, sat_rec.position.km.T))
+					pos_ecef = np.vstack((pos_ecef, sat_rec.frame_xyz(itrs).km.T))
 					vel = np.vstack((vel, sat_rec.velocity.km_per_s.T * 1000))
 					l, l2 = wgs84.latlon_of(sat_rec)
 					lat = np.concatenate((lat,l.degrees))
@@ -530,6 +535,7 @@ class Orbit(object):
 
 				sat_rec = tspan_skyfld_earthsats[-1].at(skyfld_ts.utc(timesteps[trans_indices[-1]:]))
 				pos = np.vstack((pos, sat_rec.position.km.T))
+				pos_ecef = np.vstack((pos_ecef, sat_rec.frame_xyz(itrs).km.T))
 				vel = np.vstack((vel, sat_rec.velocity.km_per_s.T * 1000))
 				l, l2 = wgs84.latlon_of(sat_rec)
 				lat = np.concatenate((lat,l.degrees))
@@ -552,6 +558,7 @@ class Orbit(object):
 			else:
 				sat_rec = tspan_skyfld_earthsats[0].at(skyfld_ts.utc(timesteps))
 				pos = sat_rec.position.km.T
+				pos_ecef = sat_rec.frame_xyz(itrs).km.T
 				vel = sat_rec.velocity.km_per_s.T * 1000
 				l, l2 = wgs84.latlon_of(sat_rec)
 				lat = l.degrees
@@ -567,6 +574,7 @@ class Orbit(object):
 			data['gen_type'] = 'propagated from TLE'
 			data['central_body'] = 'Earth'
 			data['pos'] = pos
+			data['pos_ecef'] = pos_ecef
 			data['vel'] = vel
 			data['lat'] = lat
 			data['lon'] = lon
