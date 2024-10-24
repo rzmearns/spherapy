@@ -593,12 +593,6 @@ class Orbit(object):
 				data['period_steps'] = None
 			data['name'] = tspan_skyfld_earthsats[-1].name
 
-			try:
-				self.sat = tspan_skyfld_earthsats[-1]
-			except:
-				# TODO: figure out what the exact error is and cause of when tspan_skyfld_earthsats doesn't exist
-				pass
-
 			return data
 
 	def _genAnalytical(self, timespan, body, a, ecc, inc, raan, argp, mean_nu):
