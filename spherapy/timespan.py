@@ -299,3 +299,15 @@ class TimeSpan(object):
 
 	def __len__(self):
 		return self.num_steps
+
+
+	def cherryPickFromIndices(self, idxs):
+		self._timearr = self._timearr[idxs]
+		self.start = self._timearr[0]
+		self.end = self._timearr[-1]
+		self.init_timeperiod_str = None
+		self.init_timestep_str = None
+		self.init_timezone_str = None
+		self.time_step = None
+		self.time_period = self.end - self.start
+		self.num_steps = len(self._timearr)
