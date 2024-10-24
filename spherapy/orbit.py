@@ -585,7 +585,10 @@ class Orbit(object):
 			data['argp'] = argp
 			data['TLE_epochs'] = TLE_epochs
 			data['period'] = 2 * np.pi / tspan_skyfld_earthsats[-1].model.no_kozai * 60
-			data['period_steps'] = int(data['period'] / timespan.time_step.total_seconds())
+			if timespan.time_step is not None:
+				data['period_steps'] = int(data['period'] / timespan.time_step.total_seconds())
+			else:
+				data['period_steps'] = None
 			data['name'] = tspan_skyfld_earthsats[-1].name
 
 			try:
