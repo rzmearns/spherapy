@@ -210,7 +210,10 @@ class Orbit(object):
 		satplot.Orbit
 		"""
 		skyfld_earth_sats = load.tle_file(tle_path)
-		return cls(timespan, skyfld_earth_sats, type='TLE', astrobodies=astrobodies)
+		epochs = np.asarray([a.epoch.utc_datetime() for a in skyfld_earth_sats])
+		unq_epoch, unq_idxs = np.unique(epochs, return_index=True)
+		unq_skyfld_earth_sats = list(np.asarray(skyfld_earth_sats)[unq_idxs])
+		return cls(timespan, unq_skyfld_earth_sats, type='TLE', astrobodies=astrobodies)
 
 	@classmethod
 	def fromPropagatedOrbitalParam(cls, timespan, a=6978, ecc=0, inc=0, raan=0, argp=0, mean_nu=0, name='Fake TLE', astrobodies=True):		
@@ -454,39 +457,150 @@ class Orbit(object):
 		for k,v in d.items():
 			setattr(self,k,v)
 
+	def findClosestIndices(self, target, values):
+		right_idx = np.searchsorted(target, values)
+		# print(f'{right_idx=}')
+		left_idx = right_idx - 1
+		# print(f'{left_idx=}')
+		stacked_idx = np.hstack((left_idx.reshape(-1,1),right_idx.reshape(-1,1)))
+		# print(f'{stacked_idx=}')
+		target_vals_at_idxs = target[stacked_idx]
+		# print(f'{target_vals_at_idxs=}')
+		closest_idx_columns = np.argmin(np.abs(target_vals_at_idxs - values.reshape(-1,1)),axis=1)
+		# print(f'{closest_idx_columns=}')
+		return stacked_idx[range(len(stacked_idx)),closest_idx_columns]
+
 	def _propagateFromTLE(self, timespan, tle_dates, skyfld_earthsats, gen_astrobodies=True) -> dict:
-			
-			data = self._dfltDataDict()
-			skyfld_ts = load.timescale(builtin=True)
+
+			# FAST BUT HUGELY MEMORY INTENSIVE
+			# vectorise calculation of closest epoch to each timestep
+			# a = np.tile(np.asarray(tle_dates).reshape(-1,1), (1,len(timespan)))
+			# b = np.abs(a-timespan[:])
+			# c = np.vectorize(dt.timedelta.total_seconds)(b)
+			# closest_tle_epochs = np.argmin(c,axis=0) # closest TLE epoch to each timestep (as idx of tle_dates) (shape = len(timespan, ))
+
+
+			# above, try segmenting based on number of possible TLEs (start_index, end_index)
+
+		# VERY LOW MEMORY, BUT VERY SLOW
+		# closest_tle_epochs = np.zeros(len(timespan),dtype=int)
+		# tle_dates = np.asarray(tle_dates)
+		# for ii, timestep in enumerate(timespan):
+		# 	closest_tle_epochs[ii] = np.argmin(np.abs(tle_dates - timestep))
+
+		closest_tle_epochs = self.findClosestIndices(np.asarray(tle_dates), timespan[:])
+
+		# print(f'{closest_tle_epochs=}')
+
+		d = np.hstack((1, np.diff(closest_tle_epochs)))
+		print(f'{d=}')
+		timespan_epoch_trans_idxs = np.hstack((np.where(d!=0)[0],len(timespan))) # timestep idx where TLE epoch changes, append len(timespan) to not require separate loop iteration to handle last element
+		timespan_epoch_trans_tle_idxs = closest_tle_epochs[np.where(d!=0)[0]] # tle_dates idx where TLE epoch changes in timespan
+
+		tle_epoch_idxs = []
+		sub_timespans = []
+		# print(timespan)
+		for ii, trans_start_idx in enumerate(timespan_epoch_trans_idxs[:-1]):
+			print(f'{timespan_epoch_trans_tle_idxs[ii]}:{np.arange(trans_start_idx,timespan_epoch_trans_idxs[ii+1])}')
+			# print(f'{trans_start_idx=}')
+			# print(f'{timespan_epoch_trans_idxs[ii+1]=}')
+			tle_epoch_idxs.append(timespan_epoch_trans_tle_idxs[ii])
+			sub_timespans.append(timespan[trans_start_idx,timespan_epoch_trans_idxs[ii+1]])
+			# print(f'{timespan_epoch_trans_tle_idxs[ii]}:{np.arange(trans_start_idx,timespan_epoch_trans_idxs[ii+1])}')
+		# return
+		data = self._dfltDataDict()
+		skyfld_ts = load.timescale(builtin=True)
+		print(f'{skyfld_earthsats[0].model.satnum=}')
+
+
+		# Calculate date for first run
+		sub_timespan = sub_timespans[0]
+		sub_skyfld_earthsat = skyfld_earthsats[tle_epoch_idxs[0]]
+		tle_epoch = tle_dates[tle_epoch_idxs[0]]
+		sat_rec = sub_skyfld_earthsat.at(skyfld_ts.utc(sub_timespan))
+		pos = sat_rec.position.km.T
+		vel = sat_rec.velocity.km_per_s.T * 1000
+		ecef = sat_rec.frame_xyz_and_velocity(itrs)
+		pos_ecef = ecef[0].km.T
+		vel_ecef = ecef[1].km_per_s.T * 1000
+
+		l, l2 = wgs84.latlon_of(sat_rec)
+		lat = l.degrees
+		lon = l2.degrees
+		ecc = np.tile(sub_skyfld_earthsat.model.ecco,len(sub_timespan))
+		inc = np.tile(sub_skyfld_earthsat.model.inclo,len(sub_timespan))
+		semi_major = np.tile(sub_skyfld_earthsat.model.a * consts.R_EARTH,len(sub_timespan))
+		raan = np.tile(sub_skyfld_earthsat.model.nodeo,len(sub_timespan))
+		argp = np.tile(sub_skyfld_earthsat.model.argpo,len(sub_timespan))
+		TLE_epochs = np.tile(tle_epoch,len(sub_timespan))
+
+
+		for ii in range(1,len(sub_timespans)):
+			# print()
+			# print(f'{ii=}')
+			sub_timespan = sub_timespans[ii]
+			# print(f'{len(sub_timespan)=}')
+			sub_skyfld_earthsat = skyfld_earthsats[tle_epoch_idxs[ii]]
+			tle_epoch = tle_dates[tle_epoch_idxs[ii]]
+			sat_rec = sub_skyfld_earthsat.at(skyfld_ts.utc(sub_timespan))
+			pos = np.vstack((pos, sat_rec.position.km.T))
+			vel = np.vstack((vel, sat_rec.velocity.km_per_s.T * 1000))
+			ecef = sat_rec.frame_xyz_and_velocity(itrs)
+			pos_ecef = np.vstack((pos_ecef, ecef[0].km.T))
+			vel_ecef = np.vstack((vel_ecef, ecef[1].km_per_s.T * 1000))
+
+			l, l2 = wgs84.latlon_of(sat_rec)
+			lat = np.concatenate((lat, l.degrees))
+			lon = np.concatenate((lon, l2.degrees))
+			ecc = np.concatenate((ecc, np.tile(sub_skyfld_earthsat.model.ecco, len(sub_timespan))))
+			inc = np.concatenate(((inc, np.tile(sub_skyfld_earthsat.model.inclo, len(sub_timespan)))))
+			semi_major = np.concatenate((semi_major, np.tile(sub_skyfld_earthsat.model.a * consts.R_EARTH, len(sub_timespan))))
+			raan = np.concatenate((raan, np.tile(sub_skyfld_earthsat.model.nodeo, len(sub_timespan))))
+			argp = np.concatenate((argp, np.tile(sub_skyfld_earthsat.model.argpo, len(sub_timespan))))
+			TLE_epochs = np.concatenate((TLE_epochs, np.tile(tle_epoch, len(sub_timespan))))
+
+
+
+
 			# Find closest listed TLE to start date
-			start_datetime, start_index = list_u.get_closest(tle_dates, timespan.start)
-			end_datetime, end_index = list_u.get_closest(tle_dates, timespan.end)
-
+			# print(f'{tle_dates=}')
+			# start_datetime, start_index = list_u.get_closest(tle_dates, timespan.start)
+			# end_datetime, end_index = list_u.get_closest(tle_dates, timespan.end)
+			# print(f'{start_index=}')
+			# print(f'{end_index=}')
 			# timespan starts after last TLE epoch
-			if start_index == -1 or start_index == len(tle_dates):
-				tspan_skyfld_earthsats = [skyfld_earthsats[-1]]
-				tspan_tle_epochs = [tle_dates[-1]]
+			# if start_index == -1 or start_index == len(tle_dates):
+			# 	# print("CASE 1")
+			# 	tspan_skyfld_earthsats = [skyfld_earthsats[-1]]
+			# 	tspan_tle_epochs = [tle_dates[-1]]
 
-			# timespan starts before last TLE epoch, but ends after last TLE epoch
-			elif end_index == -1 or end_index == len(tle_dates):
-				tspan_skyfld_earthsats = skyfld_earthsats[start_index:]
-				tspan_tle_epochs = tle_dates[start_index:]
+			# # timespan starts before last TLE epoch, but ends after last TLE epoch
+			# elif end_index == -1 or end_index == len(tle_dates):
+			# 	# print("CASE 2")
+			# 	tspan_skyfld_earthsats = skyfld_earthsats[start_index:]
+			# 	tspan_tle_epochs = tle_dates[start_index:]
 			
-			# timespan lies completely within available TLE epochs
-			else:
-				tspan_skyfld_earthsats = skyfld_earthsats[start_index:end_index+1]
-				tspan_tle_epochs = tle_dates[start_index:end_index+1]
-
-			timesteps = timespan[:]
+			# # timespan lies completely within available TLE epochs
+			# # elif len(timespan) == 1 and start_index != end_index:
+			# # 	# print("CASE 3")
+			# # 	tspan_skyfld_earthsats = skyfld_earthsats[start_index:end_index]
+			# # 	tspan_tle_epochs = tle_dates[start_index:end_index]
+			# else:
+			# 	# print("CASE 4")
+			# 	tspan_skyfld_earthsats = skyfld_earthsats[start_index:end_index+1]
+			# 	tspan_tle_epochs = tle_dates[start_index:end_index+1]
+			# timesteps = timespan[:]
 			
-			# tspan stretches across more than 1 TLE
-			# 	-> calculate median date for each TLE pair
-			# TODO: should we be back propagating for a TLE?
-			# 	-> find closest tspan indices to these median dates
-			# 	-> perform propagation using new TLE when required
-			if len(tspan_tle_epochs) > 1:
-				tspan_epoch_middates = np.diff(tspan_tle_epochs)/2 + np.asarray(tspan_tle_epochs[:-1])
+			# # tspan stretches across more than 1 TLE
+			# # 	-> calculate median date for each TLE pair
+			# # TODO: should we be back propagating for a TLE?
+			# # 	-> find closest tspan indices to these median dates
+			# # 	-> perform propagation using new TLE when required
+			# print(f'{tspan_tle_epochs=}')
+			# if len(tspan_tle_epochs) > 1:
+			# 	tspan_epoch_middates = np.diff(tspan_tle_epochs)/2 + np.asarray(tspan_tle_epochs[:-1])
 							
+<<<<<<< Updated upstream
 				for ii, date in enumerate(tspan_epoch_middates):
 					tspan_epoch_middates[ii] = date.replace(tzinfo=timespan.timezone)
 
@@ -571,6 +685,104 @@ class Orbit(object):
 				raan = np.tile(tspan_skyfld_earthsats[0].model.nodeo, len(timesteps))
 				argp = np.tile(tspan_skyfld_earthsats[0].model.argpo, len(timesteps))
 				TLE_epochs = np.tile(tspan_tle_epochs[0],len(timesteps))
+=======
+			# 	for ii, date in enumerate(tspan_epoch_middates):
+			# 		tspan_epoch_middates[ii] = date.replace(tzinfo=timespan.timezone)
+			# 	print(f'{tspan_epoch_middates=}')
+			# 	trans_indices = []
+			# 	for date in tspan_epoch_middates:
+			# 		trans_indices.append(np.argmin(np.abs(np.vectorize(dt.timedelta.total_seconds)(timesteps-date))))
+			# 	print(f'{trans_indices=}')
+			# 	# skyfield doesn't appear to have a way to concatenate 'Geocentric' objecs
+			# 	sat_rec = tspan_skyfld_earthsats[0].at(skyfld_ts.utc(timesteps[:trans_indices[0]]))
+			# 	pos = sat_rec.position.km.T
+			# 	vel = sat_rec.velocity.km_per_s.T * 1000
+			# 	ecef = sat_rec.frame_xyz_and_velocity(itrs)
+			# 	pos_ecef = ecef[0].km.T
+			# 	vel_ecef = ecef[1].km_per_s.T * 1000
+
+			# 	l, l2 = wgs84.latlon_of(sat_rec)
+			# 	lat = l.degrees
+			# 	lon = l2.degrees
+			# 	ecc = np.tile(tspan_skyfld_earthsats[0].model.ecco,trans_indices[0])
+			# 	inc = np.tile(tspan_skyfld_earthsats[0].model.inclo,trans_indices[0])
+			# 	semi_major = np.tile(tspan_skyfld_earthsats[0].model.a * consts.R_EARTH,trans_indices[0])
+			# 	raan = np.tile(tspan_skyfld_earthsats[0].model.nodeo,trans_indices[0])
+			# 	argp = np.tile(tspan_skyfld_earthsats[0].model.argpo,trans_indices[0])
+			# 	TLE_epochs = np.tile(tspan_tle_epochs[0],trans_indices[0])
+
+
+
+			# 	for ii in range(len(trans_indices)-1):
+			# 		sat_rec = tspan_skyfld_earthsats[ii+1].at(skyfld_ts.utc(timesteps[trans_indices[ii]:trans_indices[ii+1]]))
+			# 		pos = np.vstack((pos, sat_rec.position.km.T))
+			# 		vel = np.vstack((vel, sat_rec.velocity.km_per_s.T * 1000))
+			# 		ecef = sat_rec.frame_xyz_and_velocity(itrs)
+			# 		pos_ecef = np.vstack((pos_ecef, ecef[0].km.T))
+			# 		vel_ecef = np.vstack((vel_ecef, ecef[1].km_per_s.T * 1000))
+
+			# 		l, l2 = wgs84.latlon_of(sat_rec)
+			# 		lat = np.concatenate((lat,l.degrees))
+			# 		lon = np.concatenate((lon,l2.degrees))
+			# 		ecc = np.concatenate((ecc,
+			# 							np.tile(tspan_skyfld_earthsats[ii+1].model.ecco,trans_indices[ii+1])))
+			# 		inc = np.concatenate((inc,
+			# 							np.tile(tspan_skyfld_earthsats[ii+1].model.inclo,trans_indices[ii+1])))
+			# 		semi_major = np.concatenate((semi_major,
+			# 							np.tile(tspan_skyfld_earthsats[ii+1].model.a * consts.R_EARTH,trans_indices[ii+1])))
+			# 		raan = np.concatenate((raan,
+			# 							np.tile(tspan_skyfld_earthsats[ii+1].model.nodeo,trans_indices[ii+1])))
+			# 		argp = np.concatenate((argp,
+			# 							np.tile(tspan_skyfld_earthsats[ii+1].model.argpo,trans_indices[ii+1])))
+
+			# 		TLE_epochs = np.concatenate((TLE_epochs,
+			# 					  				np.tile(tspan_tle_epochs[ii+1],trans_indices[ii+1]-trans_indices[ii])))
+
+
+
+			# 	sat_rec = tspan_skyfld_earthsats[-1].at(skyfld_ts.utc(timesteps[trans_indices[-1]:]))
+			# 	pos = np.vstack((pos, sat_rec.position.km.T))
+			# 	vel = np.vstack((vel, sat_rec.velocity.km_per_s.T * 1000))
+			# 	ecef = sat_rec.frame_xyz_and_velocity(itrs)
+			# 	pos_ecef = np.vstack((pos_ecef, ecef[0].km.T))
+			# 	vel_ecef = np.vstack((vel_ecef, ecef[1].km_per_s.T * 1000))
+
+			# 	l, l2 = wgs84.latlon_of(sat_rec)
+			# 	lat = np.concatenate((lat,l.degrees))
+			# 	lon = np.concatenate((lon,l2.degrees))
+			# 	ecc = np.concatenate((ecc,
+			# 						np.tile(tspan_skyfld_earthsats[-1].model.ecco,trans_indices[-1])))
+			# 	inc = np.concatenate((inc,
+			# 						np.tile(tspan_skyfld_earthsats[-1].model.inclo,trans_indices[-1])))
+			# 	semi_major = np.concatenate((semi_major,
+			# 						np.tile(tspan_skyfld_earthsats[-1].model.a * consts.R_EARTH,trans_indices[-1])))
+			# 	raan = np.concatenate((raan,
+			# 						np.tile(tspan_skyfld_earthsats[-1].model.nodeo,trans_indices[-1])))
+			# 	argp = np.concatenate((argp,
+			# 						np.tile(tspan_skyfld_earthsats[-1].model.argpo,trans_indices[-1])))
+			# 	TLE_epochs = np.concatenate((TLE_epochs, 
+			# 						  			np.tile(tspan_tle_epochs[ii+1],len(timesteps) - trans_indices[-1])))
+
+
+			# # tspan is only single TLE
+			# else:
+			# 	sat_rec = tspan_skyfld_earthsats[0].at(skyfld_ts.utc(timesteps))
+				
+			# 	pos = sat_rec.position.km.T
+			# 	vel = sat_rec.velocity.km_per_s.T * 1000
+			# 	ecef = sat_rec.frame_xyz_and_velocity(itrs)
+			# 	pos_ecef = ecef[0].km.T
+			# 	vel_ecef = ecef[1].km_per_s.T * 1000
+			# 	l, l2 = wgs84.latlon_of(sat_rec)
+			# 	lat = l.degrees
+			# 	lon = l2.degrees
+			# 	ecc = np.tile(tspan_skyfld_earthsats[0].model.ecco, len(timesteps))
+			# 	inc = np.tile(tspan_skyfld_earthsats[0].model.inclo, len(timesteps))
+			# 	semi_major = np.tile(tspan_skyfld_earthsats[0].model.a * consts.R_EARTH, len(timesteps))
+			# 	raan = np.tile(tspan_skyfld_earthsats[0].model.nodeo, len(timesteps))
+			# 	argp = np.tile(tspan_skyfld_earthsats[0].model.argpo, len(timesteps))
+			# 	TLE_epochs = np.tile(tspan_tle_epochs[0],len(timesteps))
+>>>>>>> Stashed changes
 
 			data['timespan'] = timespan
 			data['gen_type'] = 'propagated from TLE'
@@ -586,12 +798,12 @@ class Orbit(object):
 			data['raan'] = raan
 			data['argp'] = argp
 			data['TLE_epochs'] = TLE_epochs
-			data['period'] = 2 * np.pi / tspan_skyfld_earthsats[-1].model.no_kozai * 60
+			data['period'] = 2 * np.pi / sub_skyfld_earthsat.model.no_kozai * 60
 			if timespan.time_step is not None:
 				data['period_steps'] = int(data['period'] / timespan.time_step.total_seconds())
 			else:
 				data['period_steps'] = None
-			data['name'] = tspan_skyfld_earthsats[-1].name
+			data['name'] = sub_skyfld_earthsat.name
 
 			return data
 

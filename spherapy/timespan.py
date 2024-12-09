@@ -21,6 +21,8 @@ class TimeSpan(object):
 
 		Does not handle leap seconds
 
+		Always contains at least two timestamps and the span in between.
+
 		Parameters
 		----------
 		t0 : {datetime.datetime}
@@ -88,7 +90,7 @@ class TimeSpan(object):
 
 			logger.info("TimeSpan has {} timesteps".format(self.num_steps))
 
-		self._timearr = np.arange(self.start, self.end, self.time_step).astype(dt.datetime)
+		self._timearr = np.arange(self.start, self.end+self.time_step, self.time_step).astype(dt.datetime)
 		self._skyfield_timespan = load.timescale()
 
 		for ii in range(len(self._timearr)):
@@ -104,7 +106,10 @@ class TimeSpan(object):
 		elif isinstance(idx, int):
 			return self._timearr[idx]
 		elif isinstance(idx, tuple):
-			return self._timearr[idx[0]:idx[1]:idx[2]]
+			if len(idx) == 2:
+				return self._timearr[idx[0]:idx[1]]
+			else:
+				return self._timearr[idx[0]:idx[1]:idx[2]]
 		elif isinstance(idx, list):
 			return self._timearr[[idx]]
 		elif isinstance(idx,slice):
@@ -298,7 +303,7 @@ class TimeSpan(object):
 		return dt.timezone(delta), tz_str
 
 	def __len__(self):
-		return self.num_steps
+		return len(self._timearr)
 
 
 	def cherryPickFromIndices(self, idxs):
