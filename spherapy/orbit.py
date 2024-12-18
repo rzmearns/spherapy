@@ -457,20 +457,16 @@ class Orbit(object):
 			setattr(self,k,v)
 
 	def _findClosestEpochIndices(self, target, values):
-		right_idx = np.searchsorted(target, values)
-		# print(f'{right_idx=}')
+		right_idx = np.searchsorted(target, values)		
 		left_idx = right_idx - 1
-		# print(f'{left_idx=}')
+		# replace any idx greater than len of target with last idx in target
+		right_idx[np.where(right_idx==len(target))] = len(target) - 1
 		stacked_idx = np.hstack((left_idx.reshape(-1,1),right_idx.reshape(-1,1)))
-		# print(f'{stacked_idx=}')
 		target_vals_at_idxs = target[stacked_idx]
-		# print(f'{target_vals_at_idxs=}')
 		closest_idx_columns = np.argmin(np.abs(target_vals_at_idxs - values.reshape(-1,1)),axis=1)
-		# print(f'{closest_idx_columns=}')
 		return stacked_idx[range(len(stacked_idx)),closest_idx_columns]
 
 	def _propagateFromTLE(self, timespan, tle_dates, skyfld_earthsats) -> dict:
-
 		closest_tle_epochs = self._findClosestEpochIndices(np.asarray(tle_dates), timespan[:])
 
 		d = np.hstack((1, np.diff(closest_tle_epochs)))
@@ -535,6 +531,7 @@ class Orbit(object):
 		data['central_body'] = 'Earth'
 		data['pos'] = pos
 		data['pos_ecef'] = pos_ecef
+		data['vel_ecef'] = vel_ecef
 		data['vel'] = vel
 		data['lat'] = lat
 		data['lon'] = lon
