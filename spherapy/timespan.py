@@ -316,3 +316,24 @@ class TimeSpan(object):
 		self.time_step = None
 		self.time_period = self.end - self.start
 		self.num_steps = len(self._timearr)
+
+	@classmethod
+	def fromDatetime(cls, dt_arr:np.ndarray[dt.datetime], timezone=dt.timezone.utc):
+		for ii in range(len(dt_arr)):
+			dt_arr[ii] = dt_arr[ii].replace(tzinfo=timezone)
+		start = dt_arr[0]
+		end = dt_arr[-1]
+		tperiod = (end-start).total_seconds()
+		tstep = tperiod/len(dt_arr)
+		t = cls(start,f'{tstep}S',f'{tperiod}S')
+		t._timearr = dt_arr.copy()
+		t.start = start
+		t.end = end
+		t.init_timeperiod_str = None
+		t.init_timestep_str = None
+		t.init_timezone_str = None
+		t.time_step = None
+		t.time_period = t.end-t.start
+		t.num_steps = len(t._timearr)
+
+		return t
