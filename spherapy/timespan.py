@@ -103,7 +103,7 @@ class TimeSpan(object):
 	def __getitem__(self, idx=None):
 		if idx == None:
 			return self._timearr
-		elif isinstance(idx, int):
+		elif isinstance(idx, int) or isinstance(idx, np.integer):
 			return self._timearr[idx]
 		elif isinstance(idx, tuple):
 			if len(idx) == 2:
@@ -114,6 +114,8 @@ class TimeSpan(object):
 			return self._timearr[[idx]]
 		elif isinstance(idx,slice):
 			return self._timearr[idx]
+		else:
+			raise TypeError('index is unknown type')
 
 	def __eq__(self, other):
 		if not isinstance(other, TimeSpan):
