@@ -432,6 +432,7 @@ class Orbit(object):
 		# pos data
 		d['pos'] = None 		#ndarray(3,n)
 		d['pos_ecef'] = None 		#ndarray(3,n)
+		d['vel_ecef'] = None 		#ndarray(3,n)
 		d['vel'] = None 		#ndarray(3,n)
 		d['lat'] = None 		#ndarray(n,)
 		d['lon'] = None 		#ndarray(n,)
