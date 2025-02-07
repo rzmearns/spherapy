@@ -31,7 +31,7 @@ o = spherapy.orbit.Orbit.fromTLE(t, TLE_paths[0])
 ```  
 -	- from orbital parameters
 ```python
-o = spherapy.orbit.Orbit.fromOrbitalParam(timespan, body='Earth', a=6978, ecc=0, inc=0, raan=0, argp=0, mean_nu=0, name='Analytical', astrobodies=True)
+o = spherapy.orbit.Orbit.fromAnalyticalOrbitalParam(timespan, body='Earth', a=6978, ecc=0, inc=0, raan=0, argp=0, mean_nu=0, name='Analytical', astrobodies=True)
 ```  
 
 ## SpaceTrack Credentials

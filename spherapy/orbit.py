@@ -67,10 +67,10 @@ class Orbit(object):
 		'''
 		The constructor should never be called directly.
 		Use one of:
-			Orbit.from_tle()
-			Orbit.from_tle_orbital_param()
-			Orbit.from_orbital_param()
-			Orbit.from_list_of_positions()
+			Orbit.fromTLE()
+			Orbit.fromListOfPositions()
+			Orbit.fromPropagatedOrbitalParam()
+			Orbit.fromAnalyticalOrbitalParam()
 		'''
 		# Should always be called from a class method, however,
 		# If no gen_type, spit an error here
