@@ -53,7 +53,7 @@ The configuration for spheraphy is set in an `.ini` style configuration file; `s
 	 `{sat_id}.tle`, containing all historical TLEs for that satellite.
 	- If celestrak is used instead, the file will be saved as a temporary file `{sat_id}.temptle`, which will be overwritten on each fetch from celestrak.
 - Orbits
-	- The orbit object is currently not serialisable, but this is a high priority area of work to prevent needing to propagate large data sets each time it is run.
+	- The orbit object is currently not serialisable, but this is a high priority area of work to prevent needing to propagate large data sets each time it is run (investigate diskcache package?)
 
 ## Timespan Object
 The timespan object is the base time class of spheraphy.
