@@ -25,7 +25,7 @@ setuptools.setup(
     python_requires=">=3.10",
 	install_requires=[
 		'astropy ==5.3.4',
-		'scipy ==1.8.0',
+		'scipy ==1.15.1',
 		'skyfield ==1.46',
 		'progressbar2 ==4.4.1',
 		'hapsira ==0.18.0',
