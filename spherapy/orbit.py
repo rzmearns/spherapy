@@ -122,7 +122,7 @@ class Orbit(object):
 			mean_nu = kwargs.get('mean_nu')
 
 			data_dict = self._propagateAnalytical(timespan, a, ecc, inc, raan, argp, mean_nu)
-			data_dict['name'] = kwargs['name']
+			data_dict['name'] = kwargs['type']
 
 
 		elif gen_type == 'ANALYTICAL':
@@ -135,7 +135,7 @@ class Orbit(object):
 			mean_nu = kwargs.get('mean_nu') * astropy_units.rad
 						
 			data_dict = self._genAnalytical(timespan, body, a, ecc, inc, raan, argp, mean_nu)
-			data_dict['name'] = kwargs['name']
+			data_dict['name'] = kwargs['type']
 
 
 		elif gen_type == 'POS_LIST':
