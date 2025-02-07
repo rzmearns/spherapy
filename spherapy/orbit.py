@@ -134,7 +134,7 @@ class Orbit(object):
 			argp = kwargs.get('argp') * astropy_units.rad
 			mean_nu = kwargs.get('mean_nu') * astropy_units.rad
 						
-			data_dict = self._genAnalytical(timespan, a, ecc, inc, raan, argp, mean_nu)
+			data_dict = self._genAnalytical(timespan, body, a, ecc, inc, raan, argp, mean_nu)
 			data_dict['name'] = kwargs['name']
 
 
