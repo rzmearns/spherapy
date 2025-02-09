@@ -129,10 +129,10 @@ class Orbit(object):
 			body = kwargs.get('body')
 			a = kwargs.get('a') * astropy_units.km
 			ecc = kwargs.get('ecc') * astropy_units.one
-			inc = kwargs.get('inc') * astropy_units.rad
-			raan = kwargs.get('raan') * astropy_units.rad
-			argp = kwargs.get('argp') * astropy_units.rad
-			mean_nu = kwargs.get('mean_nu') * astropy_units.rad
+			inc = kwargs.get('inc') * astropy_units.deg
+			raan = kwargs.get('raan') * astropy_units.deg
+			argp = kwargs.get('argp') * astropy_units.deg
+			mean_nu = kwargs.get('mean_nu') * astropy_units.deg
 						
 			data_dict = self._genAnalytical(timespan, body, a, ecc, inc, raan, argp, mean_nu)
 			data_dict['name'] = kwargs['type']
