@@ -51,7 +51,7 @@ class Orbit(object):
 		Cartesian coordinates of the velocity of the satellite at each time in a TimeSpan (units: m/s)
 		Coordinate system depending on the central body.
 
-	sun: (N, 3) np.array
+	sun_pos: (N, 3) np.array
 		Vector of the sun's position at each timestep (GCRS; units: km)
 		
 	period: float
