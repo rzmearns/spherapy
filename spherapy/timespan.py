@@ -121,7 +121,7 @@ class TimeSpan(object):
 		if not isinstance(other, TimeSpan):
 			return NotImplemented
 
-		return np.all(self._asDatetime() == other._asDatetime())
+		return np.all(self.asDatetime() == other._asDatetime())
 
 	def __add__(self, other):
 		self_copy = TimeSpan(self.start)
@@ -214,7 +214,7 @@ class TimeSpan(object):
 		diff = self._timearr - t_search
 		out = np.abs(np.vectorize(lambda x: x.total_seconds())(diff))
 		res_index = int(np.argmin(out))
-		return self._asDatetime(res_index), res_index
+		return self.asDatetime(res_index), res_index
 
 	def _parseTimeperiod(self, t0, timeperiod):
 		for index, letter in enumerate(timeperiod):
