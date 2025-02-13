@@ -122,7 +122,7 @@ class Orbit(object):
 			mean_nu = kwargs.get('mean_nu')
 
 			data_dict = self._propagateAnalytical(timespan, a, ecc, inc, raan, argp, mean_nu)
-			data_dict['name'] = kwargs['type']
+			data_dict['name'] = kwargs['name']
 
 
 		elif gen_type == 'ANALYTICAL':
@@ -135,7 +135,7 @@ class Orbit(object):
 			mean_nu = kwargs.get('mean_nu') * astropy_units.deg
 						
 			data_dict = self._genAnalytical(timespan, body, a, ecc, inc, raan, argp, mean_nu)
-			data_dict['name'] = kwargs['type']
+			data_dict['name'] = kwargs['name']
 
 
 		elif gen_type == 'POS_LIST':
@@ -269,7 +269,7 @@ class Orbit(object):
 			raise exceptions.OutOfRange("Mean anomaly, {}, is out of range, should be 0 < mean_nu < 360".format(inc))
 
 
-		return cls(timespan, body=Earth, a=a, ecc=ecc, inc=inc, raan=raan, argp=argp, mean_nu=mean_nu, type='FAKE_TLE', astrobodies=astrobodies)
+		return cls(timespan, body=Earth, a=a, ecc=ecc, inc=inc, raan=raan, argp=argp, mean_nu=mean_nu, name=name, type='FAKE_TLE', astrobodies=astrobodies)
 		
 	@classmethod
 	def fromAnalyticalOrbitalParam(cls, timespan, body='Earth', a=6978, ecc=0, inc=0, raan=0, argp=0, mean_nu=0, name='Analytical', astrobodies=True):
@@ -338,7 +338,7 @@ class Orbit(object):
 			logger.error("Mean anomaly, {}, is out of range, should be 0 < mean_nu < 360".format(inc))
 			raise exceptions.OutOfRange("Mean anomaly, {}, is out of range, should be 0 < mean_nu < 360".format(inc))
 
-		return cls(timespan, body=central_body, a=a, ecc=ecc, inc=inc, raan=raan, argp=argp, mean_nu=mean_nu, type='ANALYTICAL', astrobodies=astrobodies)
+		return cls(timespan, body=central_body, a=a, ecc=ecc, inc=inc, raan=raan, argp=argp, mean_nu=mean_nu, name=name, type='ANALYTICAL', astrobodies=astrobodies)
 
 	@classmethod
 	def load(cls, file):

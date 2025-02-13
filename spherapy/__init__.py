@@ -6,12 +6,8 @@ pkg_dir = Path(__file__).parents[1]
 config = configparser.ConfigParser()
 config.read(f"{pkg_dir.absolute()}/spherapy.conf")
 
-try:
-	tle_path = Path(f"{pkg_dir}/{config['paths'].get('TLE_Path')}")
-	spacetrack_cred_path = Path(f"{pkg_dir}/{config['paths'].get('SpaceTrackCredential_Path')}")
-except KeyError:
-	tle_path = Path(f"{pkg_dir}/{config['DEFAULT'].get('TLE_Path')}")
-	spacetrack_cred_path = Path(f"{pkg_dir}/{config['DEFAULT'].get('SpaceTrackCredential_Path')}")
+tle_path = Path(f"{pkg_dir}/{config['paths'].get('TLE_Path')}")
+spacetrack_cred_path = Path(f"{pkg_dir}/{config['paths'].get('SpaceTrackCredential_Path')}")
 
 
 try:
