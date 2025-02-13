@@ -1,4 +1,8 @@
-
+## Installation
+This package can be installed via pip directly from the git repository via:
+```bash
+pip install git+ssh://git@gitlab.unimelb.edu.au/msl/libraries/spherapy.git
+```
 
 ## Usage
 ### As a submodule
