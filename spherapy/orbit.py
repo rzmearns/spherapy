@@ -51,7 +51,7 @@ class Orbit(object):
 		Cartesian coordinates of the velocity of the satellite at each time in a TimeSpan (units: m/s)
 		Coordinate system depending on the central body.
 
-	sun: (N, 3) np.array
+	sun_pos: (N, 3) np.array
 		Vector of the sun's position at each timestep (GCRS; units: km)
 		
 	period: float
@@ -67,10 +67,10 @@ class Orbit(object):
 		'''
 		The constructor should never be called directly.
 		Use one of:
-			Orbit.from_tle()
-			Orbit.from_tle_orbital_param()
-			Orbit.from_orbital_param()
-			Orbit.from_list_of_positions()
+			Orbit.fromTLE()
+			Orbit.fromListOfPositions()
+			Orbit.fromPropagatedOrbitalParam()
+			Orbit.fromAnalyticalOrbitalParam()
 		'''
 		# Should always be called from a class method, however,
 		# If no gen_type, spit an error here
@@ -129,12 +129,12 @@ class Orbit(object):
 			body = kwargs.get('body')
 			a = kwargs.get('a') * astropy_units.km
 			ecc = kwargs.get('ecc') * astropy_units.one
-			inc = kwargs.get('inc') * astropy_units.rad
-			raan = kwargs.get('raan') * astropy_units.rad
-			argp = kwargs.get('argp') * astropy_units.rad
-			mean_nu = kwargs.get('mean_nu') * astropy_units.rad
+			inc = kwargs.get('inc') * astropy_units.deg
+			raan = kwargs.get('raan') * astropy_units.deg
+			argp = kwargs.get('argp') * astropy_units.deg
+			mean_nu = kwargs.get('mean_nu') * astropy_units.deg
 						
-			data_dict = self._genAnalytical(timespan, a, ecc, inc, raan, argp, mean_nu)
+			data_dict = self._genAnalytical(timespan, body, a, ecc, inc, raan, argp, mean_nu)
 			data_dict['name'] = kwargs['name']
 
 
@@ -269,7 +269,7 @@ class Orbit(object):
 			raise exceptions.OutOfRange("Mean anomaly, {}, is out of range, should be 0 < mean_nu < 360".format(inc))
 
 
-		return cls(timespan, body=Earth, a=a, ecc=ecc, inc=inc, raan=raan, argp=argp, mean_nu=mean_nu, type='FAKE_TLE', astrobodies=astrobodies)
+		return cls(timespan, body=Earth, a=a, ecc=ecc, inc=inc, raan=raan, argp=argp, mean_nu=mean_nu, name=name, type='FAKE_TLE', astrobodies=astrobodies)
 		
 	@classmethod
 	def fromAnalyticalOrbitalParam(cls, timespan, body='Earth', a=6978, ecc=0, inc=0, raan=0, argp=0, mean_nu=0, name='Analytical', astrobodies=True):
@@ -338,7 +338,7 @@ class Orbit(object):
 			logger.error("Mean anomaly, {}, is out of range, should be 0 < mean_nu < 360".format(inc))
 			raise exceptions.OutOfRange("Mean anomaly, {}, is out of range, should be 0 < mean_nu < 360".format(inc))
 
-		return cls(timespan, body=central_body, a=a, ecc=ecc, inc=inc, raan=raan, argp=argp, mean_nu=mean_nu, type='ANALYTICAL', astrobodies=astrobodies)
+		return cls(timespan, body=central_body, a=a, ecc=ecc, inc=inc, raan=raan, argp=argp, mean_nu=mean_nu, name=name, type='ANALYTICAL', astrobodies=astrobodies)
 
 	@classmethod
 	def load(cls, file):

@@ -1,6 +1,7 @@
-astropy==5.3.4
-scipy==1.8.0
-skyfield==1.46
-progressbar2==4.4.1
-hapsira==0.18.0
-spacetrack==1.2.0
+astropy         == 5.3.4
+scipy           >= 1.8
+numpy
+skyfield        == 1.46
+progressbar2    == 4.4.1
+hapsira         == 0.18.0
+spacetrack      == 1.2.0

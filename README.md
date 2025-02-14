@@ -1,4 +1,8 @@
-
+## Installation
+This package can be installed via pip directly from the git repository via:
+```bash
+pip install git+ssh://git@gitlab.unimelb.edu.au/msl/libraries/spherapy.git
+```
 
 ## Usage
 ### As a submodule
@@ -31,7 +35,7 @@ o = spherapy.orbit.Orbit.fromTLE(t, TLE_paths[0])
 ```  
 -	- from orbital parameters
 ```python
-o = spherapy.orbit.Orbit.fromOrbitalParam(timespan, body='Earth', a=6978, ecc=0, inc=0, raan=0, argp=0, mean_nu=0, name='Analytical', astrobodies=True)
+o = spherapy.orbit.Orbit.fromAnalyticalOrbitalParam(timespan, body='Earth', a=6978, ecc=0, inc=0, raan=0, argp=0, mean_nu=0, name='Analytical', astrobodies=True)
 ```  
 
 ## SpaceTrack Credentials
@@ -53,7 +57,7 @@ The configuration for spheraphy is set in an `.ini` style configuration file; `s
 	 `{sat_id}.tle`, containing all historical TLEs for that satellite.
 	- If celestrak is used instead, the file will be saved as a temporary file `{sat_id}.temptle`, which will be overwritten on each fetch from celestrak.
 - Orbits
-	- The orbit object is currently not serialisable, but this is a high priority area of work to prevent needing to propagate large data sets each time it is run.
+	- The orbit object is currently not serialisable, but this is a high priority area of work to prevent needing to propagate large data sets each time it is run (investigate diskcache package?)
 
 ## Timespan Object
 The timespan object is the base time class of spheraphy.
