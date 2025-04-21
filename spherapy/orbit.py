@@ -145,8 +145,8 @@ class Orbit(object):
 			data['pos'] = args[1]
 			# Assume linear motion between each position at each timestep; 
 			# Then assume it stops at the last timestep.
-			vel = self.pos[1:] - self.pos[:-1]
-			data['vel'] = np.concatenate((self.vel, np.array([[0, 0, 0]])))
+			vel = data['pos'][1:] - data['pos'][:-1]
+			data['vel'] = np.concatenate((vel, np.array([[0, 0, 0]])))
 			data['period'] = None
 			data['period_steps'] = 1
 			data['name'] = ['Sat from position list']
@@ -164,14 +164,14 @@ class Orbit(object):
 			# Timescale for sun position calculation should use TDB, not UTC
 			# The resultant difference is likely very small
 			ephem_sun = Ephem.from_body(Sun, astropyTime(timespan.asAstropy(scale='tdb')), attractor=Earth)
-			data_dict['sun_pos'] = np.asarray(ephem_sun.rv()[0].to(astropy_units.km))
+			data['sun_pos'] = np.asarray(ephem_sun.rv()[0].to(astropy_units.km))
 
 			logger.info('Creating ephemeris for Moon using timespan')
 			ephem_moon = Ephem.from_body(Moon, astropyTime(timespan.asAstropy(scale='tdb')), attractor=Earth)
-			data_dict['moon_pos'] = np.asarray(ephem_moon.rv()[0].to(astropy_units.km))
-			data_dict['eclipse'] = self._calcEclipse(data_dict['pos'],data_dict['sun_pos'])
+			data['moon_pos'] = np.asarray(ephem_moon.rv()[0].to(astropy_units.km))
+			data['eclipse'] = self._calcEclipse(data['pos'],data['sun_pos'])
 
-		self._attributiseDataDict(data_dict)
+		self._attributiseDataDict(data)
 
 	@classmethod	
 	def fromListOfPositions(cls, timespan, positions, astrobodies=True):
