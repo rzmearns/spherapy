@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 class TimeSpan(object):
+	num_steps : int
 
 	def __init__(self, t0, timestep='1S', timeperiod='10S', timezone='00:00'):
 		"""
@@ -27,7 +28,7 @@ class TimeSpan(object):
 		----------
 		t0 : {datetime.datetime}
 			datetime object defining the start of the TimeSpan
-		num_steps: int
+		num_steps : int
 			Number of timesteps
 		timestep : {str}, optional
 			String describing the time step of the time span. The string is constructed 
@@ -79,18 +80,19 @@ class TimeSpan(object):
 			raise ValueError("Invalid timeperiod value, too small: {}".format(timeperiod))
 
 		# Calculate step numbers and correct for non integer steps.
-		self.num_steps = int(np.floor(self.time_period / self.time_step))
-		if self.num_steps != self.time_period / self.time_step:
+		n_down = int(np.floor(self.time_period / self.time_step))
+		if n_down != self.time_period / self.time_step:
 			logger.info("Rounding to previous integer number of timesteps")
-			self.end = self.num_steps * self.time_step + self.start
+			self.end = n_down * self.time_step + self.start
 			self.time_period = self.end - self.start
 			
 			logger.info("Adjusting TimeSpan to {} -> {} with {} seconds timestep".
 						format(self.start, self.end, self.time_step.total_seconds()))
 
-			logger.info("TimeSpan has {} timesteps".format(self.num_steps))
 
 		self._timearr = np.arange(self.start, self.end+self.time_step, self.time_step).astype(dt.datetime)
+		self.num_steps = len(self._timearr)
+		logger.info("TimeSpan has {} timesteps".format(self.num_steps))
 		self._skyfield_timespan = load.timescale()
 
 		for ii in range(len(self._timearr)):
