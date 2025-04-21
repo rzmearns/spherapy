@@ -121,7 +121,7 @@ class TimeSpan(object):
 		if not isinstance(other, TimeSpan):
 			return NotImplemented
 
-		return np.all(self.asDatetime() == other._asDatetime())
+		return np.all(self.asDatetime() == other.asDatetime())
 
 	def __add__(self, other):
 		self_copy = TimeSpan(self.start)
