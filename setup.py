@@ -24,7 +24,7 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     python_requires=">=3.10",
 	install_requires=[
-		'astropy ==5.3.4',
+		'astropy ==6.1.4',
 		'scipy >=1.8',
 		'numpy',
 		'skyfield ==1.46',
