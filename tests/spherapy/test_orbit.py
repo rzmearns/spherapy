@@ -1,8 +1,8 @@
 import unittest
 import numpy as np
-import thermpy.solver.mission.orbit as orbit
-import thermpy.solver.mission.timespan as timespan
-import thermpy.util.orbital_u as orbital_u
+from spherapy import orbit
+from spherapy import timespan
+from spherapy.util import orbital_u
 import datetime as dt
 
 # Disable logging during testing
@@ -25,13 +25,13 @@ class TestOrbit(unittest.TestCase):
 		cls.t1 = timespan.TimeSpan(cls.t02, '1S', '30M')
 
 		# From multiple TLEs
-		cls.o_tle = orbit.Orbit.from_tle(cls.t, 'data/tle/zarya_20041227-20041231.tle')
+		cls.o_tle = orbit.Orbit.fromTLE(cls.t, 'data/tle/zarya_20041227-20041231.tle')
 		# From single TLE
-		cls.o_tle2 = orbit.Orbit.from_tle(cls.t1, 'data/tle/zarya_20211124.tle')
+		cls.o_tle2 = orbit.Orbit.fromTLE(cls.t1, 'data/tle/zarya_20211124.tle')
 		# From fake TLE
-		cls.o_ftle = orbit.Orbit.from_tle_orbital_param(cls.t, a=(6378 + 600), ecc=0, inc=45, raan=0, argp=0, mean_nu=0)
+		cls.o_ftle = orbit.Orbit.fromAnalyticalOrbitalParam(cls.t, a=(6378 + 600), ecc=0, inc=45, raan=0, argp=0, mean_nu=0)
 		# From orbital param
-		cls.o_param = orbit.Orbit.from_orbital_param(cls.t, a=(6378 + 600), ecc=0, inc=45, raan=0, argp=0, mean_nu=0)
+		cls.o_param = orbit.Orbit.fromAnalyticalOrbitalParam(cls.t, a=(6378 + 600), ecc=0, inc=45, raan=0, argp=0, mean_nu=0)
 		# 	# TODO: implement posvel initialisation
 
 	def test_attributes(self):
@@ -42,19 +42,19 @@ class TestOrbit(unittest.TestCase):
 		self.o_tle.vel
 		self.o_tle.period
 		self.o_tle.period_steps
-		self.o_tle.sun
+		self.o_tle.sun_pos
 		# From fake TLE
 		self.o_ftle.pos
 		self.o_ftle.vel
 		self.o_ftle.period
 		self.o_ftle.period_steps
-		self.o_ftle.sun
+		self.o_ftle.sun_pos
 		# From orbital param
 		self.o_param.pos
 		self.o_param.vel
 		self.o_param.period
 		self.o_param.period_steps
-		self.o_param.sun
+		self.o_param.sun_pos
 		# TODO: implement posvel init attribute checks
 
 	def test_dimensions(self):
@@ -87,12 +87,12 @@ class TestOrbit(unittest.TestCase):
 
 		a = 6378 + 600
 
-		o = orbit.Orbit.from_orbital_param(t, a=a, ecc=0, inc=45, raan=0, argp=0, mean_nu=0)
+		o = orbit.Orbit.fromAnalyticalOrbitalParam(t, a=a, ecc=0, inc=45, raan=0, argp=0, mean_nu=0)
 
 		# Circular orbit should have the same semi-major for its duration
 		self.assertTrue(np.all(np.isclose(np.linalg.norm(o.pos, axis=1), a)))
 		# Circular orbit should have the same orbital speed for its duration
-		speed = orbital_u.calc_orbital_vel(a * 1e3, np.array((a * 1e3, 0, 0)))
+		speed = orbital_u.calcOrbitalVel(a * 1e3, np.array((a * 1e3, 0, 0)))
 		self.assertTrue(np.all(np.isclose(np.linalg.norm(o.vel, axis=1), speed)))
 
 		# Should check elliptical orbits

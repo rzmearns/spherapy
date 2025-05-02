@@ -48,10 +48,13 @@ class TimeSpan(object):
 		------
 		ValueError
 		"""
-
-		self.start = t0
+		# Convert any timezones to UTC, and strip timezone information
+		# Numpy doesn't like timezones as of 1.11
 		self.init_timezone_str = timezone
 		self.timezone, self.timezone_str = self._parseTimezone(timezone)
+		t0 = t0.astimezone(self.timezone)
+
+		self.start = t0
 		self.init_timestep_str = timestep
 		self.init_timeperiod_str = timeperiod
 		self.time_step = self._parseTimedelta(timestep)
@@ -62,12 +65,6 @@ class TimeSpan(object):
 		logger.info("Creating TimeSpan between {} and {} with {} seconds timestep"
 					.format(self.start, self.end, self.time_step.total_seconds()))
 
-		# Convert any timezones to UTC, and strip timezone information
-		# Numpy doesn't like timezones as of 1.11
-		self.start = self.start.replace(tzinfo=self.timezone)
-		self.end = self.end.replace(tzinfo=self.timezone)
-		# self.start = self.start.astimezone(tz=dt.timezone.utc)
-		# self.end = self.end.astimezone(tz=dt.timezone.utc)
 
 		if self.start >= self.end:
 			logger.error("Timeperiod: {} results in an end date earlier than the start date".
@@ -95,8 +92,9 @@ class TimeSpan(object):
 		logger.info("TimeSpan has {} timesteps".format(self.num_steps))
 		self._skyfield_timespan = load.timescale()
 
+		# numpy strips tzinfo
 		for ii in range(len(self._timearr)):
-			self._timearr[ii] = self._timearr[ii].replace(tzinfo=self.timezone)
+			self._timearr[ii] = self._timearr[ii].replace(tzinfo=dt.timezone.utc).astimezone(self.timezone)
 
     # Make it callable and return the data for that entry
 	def __call__(self, idx=None):
