@@ -20,6 +20,8 @@ import datetime as dt
 # TODO: figure out the lightest import to use
 from skyfield.api import load, EarthSatellite, wgs84
 
+from spherapy.timespan import TimeSpan
+
 import spherapy.util.list_u as list_u
 import spherapy.util.epoch_u as epoch_u
 import spherapy.util.orbital_u as orbit_u
@@ -40,7 +42,7 @@ class Orbit(object):
 		
 	Attributes
 	----------
-	timespan: {satplot.TimeSpan}
+	timespan: TimeSpan
 		Timespan over which orbit is to be simulated
 		
 	pos: (N, 3) np.array
@@ -63,6 +65,13 @@ class Orbit(object):
 		Recommended: 10 < period_steps < 100 or so? Should we write warnings if outside this range?
 	
 	'''
+	timespan : TimeSpan
+	pos : np.ndarray
+	vel : np.ndarray
+	sun_pos : np.ndarray
+	period : float
+	period_steps : float
+
 	def __init__(self, *args, **kwargs):
 		'''
 		The constructor should never be called directly.
@@ -174,14 +183,14 @@ class Orbit(object):
 		self._attributiseDataDict(data_dict)
 
 	@classmethod	
-	def fromListOfPositions(cls, timespan, positions, astrobodies=True):
+	def fromListOfPositions(cls, timespan : TimeSpan, positions, astrobodies=True):
 		"""Create an orbit by explicitly specifying the position of the 
 		satellite at each point in time. Useful for simplified test cases; but
 		may lead to unphysical orbits.
 		
 		Parameters
 		----------
-		timespan : {satplot.TimeSpan}
+		timespan : TimeSpan
 			Timespan over which orbit is to be simulated
 			
 		positions: (N,3) np.array
@@ -194,12 +203,12 @@ class Orbit(object):
 		return cls(timespan, positions, type='POS_LIST', astrobodies=astrobodies)
 	
 	@classmethod	
-	def fromTLE(cls, timespan, tle_path, fp=sys.stdout, astrobodies=True):
+	def fromTLE(cls, timespan : TimeSpan, tle_path, fp=sys.stdout, astrobodies=True):
 		"""Create an orbit from an existing TLE or a list of historical TLEs
 				
 		Parameters
 		----------
-		timespan : {satplot.TimeSpan}
+		timespan : TimeSpan
 			Timespan over which orbit is to be simulated
 		tle_path : {path to file containing TLE(s)}
 			A plain text file containing the TLE or list of TLE(s) with each TLE line on a new line in the file.
@@ -215,7 +224,7 @@ class Orbit(object):
 		return cls(timespan, unq_skyfld_earth_sats, type='TLE', astrobodies=astrobodies)
 
 	@classmethod
-	def fromPropagatedOrbitalParam(cls, timespan, a=6978, ecc=0, inc=0, raan=0, argp=0, mean_nu=0, name='Fake TLE', astrobodies=True):		
+	def fromPropagatedOrbitalParam(cls, timespan : TimeSpan, a : float = 6978, ecc : float = 0, inc : float = 0, raan : float = 0, argp : float = 0, mean_nu : float = 0, name='Fake TLE', astrobodies=True):		
 		"""Create an orbit from orbital parameters, propagated using sgp4.
 		
 		Orbits created using this class method will respect gravity corrections such as J4, 
@@ -223,24 +232,24 @@ class Orbit(object):
 		
 		Parameters
 		----------
-		timespan : {satplot.TimeSpan}
+		timespan : TimeSpan
 			Timespan over which orbit is to be simulated
-		a : {float}, optional
+		a : float, optional
 			semi-major axis of the orbit in km (the default is 6978 ~ 600km 
 			above the earth.)
-		ecc : {float}, optional
+		ecc : float, optional
 			dimensionless number 0 < ecc < 1 (the default is 0, which is a 
 			circular orbit)
-		inc : {float}, optional
+		inc : float, optional
 			inclination of orbit in degrees (the default is 0, which represents 
 			an orbit around the Earth's equator)
-		raan : {float}, optional
+		raan : float, optional
 			right-ascension of the ascending node (the default is 0)
-		argp : {float}, optional
+		argp : float, optional
 			argument of the perigee in degrees (the default is 0, which 
 			represents an orbit with its semimajor axis in the plane of the 
 			Earth's equator)
-		mean_nu : {float}, optional
+		mean_nu : float, optional
 			mean anomaly in degrees (the default is 0, which represents an orbit
 			that is beginning at periapsis)
 		
@@ -272,29 +281,29 @@ class Orbit(object):
 		return cls(timespan, body=Earth, a=a, ecc=ecc, inc=inc, raan=raan, argp=argp, mean_nu=mean_nu, name=name, type='FAKE_TLE', astrobodies=astrobodies)
 		
 	@classmethod
-	def fromAnalyticalOrbitalParam(cls, timespan, body='Earth', a=6978, ecc=0, inc=0, raan=0, argp=0, mean_nu=0, name='Analytical', astrobodies=True):
+	def fromAnalyticalOrbitalParam(cls, timespan : TimeSpan, body : str = 'Earth', a : float = 6978, ecc : float = 0, inc : float = 0, raan : float = 0, argp : float = 0, mean_nu : float = 0, name='Analytical', astrobodies=True):
 		"""Create an orbit from orbital parameters
 		
 		Parameters
 		----------
-		timespan : {satplot.TimeSpan}
+		timespan : TimeSpan
 			Timespan over which orbit is to be simulated
-		body : {str}, optional
+		body : str, optional
 			Central body for the satellite: ['Earth', 'Moon', 'Mars', 'Sun'] (the default is 'Earth')
-		a : {float}, optional
+		a : float, optional
 			semi-major axis of the orbit in km (the default is 6978 ~ 600km above the earth.)
-		ecc : {float}, optional
+		ecc : float, optional
 			dimensionless number 0 < ecc < 1 (the default is 0, which is a circular orbit)
-		inc : {float}, optional
+		inc : float, optional
 			inclination of orbit in degrees (the default is 0, which represents 
 			an orbit around the Earth's equator)
-		raan : {float}, optional
+		raan : float, optional
 			right-ascension of the ascending node (the default is 0)
-		argp : {float}, optional
+		argp : float, optional
 			argument of the perigee in degrees (the default is 0, which 
 			represents an orbit with its semimajor axis in the plane of the 
 			Earth's equator)
-		mean_nu : {float}, optional
+		mean_nu : float, optional
 			mean anomaly in degrees (the default is 0, which represents an orbit
 			that is beginning at periapsis)
 		
