@@ -1,4 +1,6 @@
 import unittest
+
+import os
 import numpy as np
 from spherapy import orbit
 from spherapy import timespan
@@ -25,9 +27,9 @@ class TestOrbit(unittest.TestCase):
 		cls.t1 = timespan.TimeSpan(cls.t02, '1S', '30M')
 
 		# From multiple TLEs
-		cls.o_tle = orbit.Orbit.fromTLE(cls.t, 'data/tle/zarya_20041227-20041231.tle')
+		cls.o_tle = orbit.Orbit.fromTLE(cls.t, f"{os.path.dirname(os.path.abspath(__file__))}/zarya_20041227-20041231.tle")
 		# From single TLE
-		cls.o_tle2 = orbit.Orbit.fromTLE(cls.t1, 'data/tle/zarya_20211124.tle')
+		cls.o_tle2 = orbit.Orbit.fromTLE(cls.t1, f"{os.path.dirname(os.path.abspath(__file__))}/zarya_20211124.tle")
 		# From fake TLE
 		cls.o_ftle = orbit.Orbit.fromAnalyticalOrbitalParam(cls.t, a=(6378 + 600), ecc=0, inc=45, raan=0, argp=0, mean_nu=0)
 		# From orbital param

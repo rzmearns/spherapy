@@ -28,6 +28,7 @@ class TimeSpan(object):
 		----------
 		t0 : {datetime.datetime}
 			datetime object defining the start of the TimeSpan
+			assumed to be in UTC regardless of actual tzinfo
 		num_steps : int
 			Number of timesteps
 		timestep : {str}, optional
@@ -52,7 +53,7 @@ class TimeSpan(object):
 		# Numpy doesn't like timezones as of 1.11
 		self.init_timezone_str = timezone
 		self.timezone, self.timezone_str = self._parseTimezone(timezone)
-		t0 = t0.astimezone(self.timezone)
+		t0 = t0.replace(tzinfo=dt.timezone.utc).astimezone(self.timezone)
 
 		self.start = t0
 		self.init_timestep_str = timestep
