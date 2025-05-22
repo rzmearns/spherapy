@@ -661,3 +661,15 @@ class Orbit(object):
 
 	def serialise(self):
 		raise NotImplementedError
+
+	@classmethod
+	def fromConstantPosition(cls, timespan : TimeSpan, pos, sun_pos):
+		'''
+		creates an empty orbit with the motionless at the origin and the sun at +z
+		useful for testing where an orbit is needed independent of any real ephemeris data
+		'''
+		positions = np.full((timespan.num_steps, pos.shape[0]), pos)
+		sun_positions = np.full((timespan.num_steps, sun_pos.shape[0]), sun_pos)
+		orbit = cls.fromListOfPositions(timespan, positions, astrobodies=False)
+		setattr(orbit,'sun_pos', sun_positions)
+		return orbit
