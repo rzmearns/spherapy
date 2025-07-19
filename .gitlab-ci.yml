@@ -1,4 +1,4 @@
-image: python:3.12-slim
+image: $CI_REGISTRY/msl/tools/satplot:latest
 
 variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
@@ -26,4 +26,4 @@ test:
 
 type:
   script:
-    - mypy satplot
+    - mypy spherapy
