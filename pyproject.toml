@@ -28,7 +28,6 @@ maintainers = [
 description = "An orbital propagator wrapper and TLE fetcher"
 readme = "README.md"
 keywords = ['satellite', 'sgp', 'space', 'orbit']
-dynamic = ['version']
 
 [project.optional-dependencies]
 dev = [
