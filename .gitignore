@@ -6,6 +6,7 @@ data/TLEs
 ###################
 *.pyc
 *.vscode
+build
 
 # Environment #
 ############
@@ -36,6 +37,7 @@ spherapy-env/
 *.sqlite
 *.json
 *.console
+*.bsp
 
 # Caches #
 ######################
