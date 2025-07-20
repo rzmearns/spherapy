@@ -11,55 +11,41 @@ logger = logging.getLogger(__name__)
 
 
 class TimeSpan(object):
-	num_steps : int
 
-	def __init__(self, t0, timestep='1S', timeperiod='10S', timezone='00:00'):
-		"""
-		Create a TimeSpan object, times are assumed to be in UTC
-		
-		An array of dates as datetimes is accessed with TimeSpan.as_datetime()
-		An array of dates as astropy.time is accessed with TimeSpan.as_astropy()
+	def __init__(self, t0, timestep='1S', timeperiod='10S'):
+		"""Creates a series of timestamps.
+		Difference between each timestamp = timestep
+		Total duration = integer number of timesteps closest to timeperiod
+			If timeperiod is an integer multiple of timestep,
+			then TimeSpan[-1] - TimeSpan[0] = timeperiod
+			If timeperiod is NOT an integer multiple of timestep,
 
-		Does not handle leap seconds
-
-		Always contains at least two timestamps and the span in between.
+		Does not account for Leap seconds, all days have 86400 seconds in them
+		Always contains at least two timestamps
 
 		Parameters
-		----------
-		t0 : {datetime.datetime}
-			datetime object defining the start of the TimeSpan
-			assumed to be in UTC regardless of actual tzinfo
-		num_steps : int
-			Number of timesteps
-		timestep : {str}, optional
-			String describing the time step of the time span. The string is constructed 
-			as an integer or float, followed by a time unit: (d)ays,
-			(H)ours, (M)inutes, (S)econds, (mS) milliseconds, (uS) microseconds
-			(the default is '1S, which is one second.)
-		timeperiod : {str}, optional
-			String describing the time period of the time span. The string is constructed 
-			as an integer or float, followed by a time unit: (y)ears, (m)onths, (W)eeks, (d)ays,
-			(H)ours, (M)inutes, (S)econds, (mS) milliseconds, (uS) microseconds
-			(the default is '1d', which is one day.)
-		timezone : {datetime.timezone}, optional
-			Timezone to be implicitly assumed for the timespan. Methods can check against 
-			TimeSpan.timezone for instances.
+		t0: datetime defining the start of the TimeSpan.
+				If timezone naive, assumed to be in UTC
+				If timezone aware, will be converted to UTC, and then made naive
+		timestep: String describing the time step of the time span.
+					The string is constructed as an integer or float, followed by a time unit:
+					(d)ays, (H)ours, (M)inutes, (S)econds, (mS) milliseconds, (uS) microseconds
+					(the default is '1S')
+		timeperiod:	String describing the time period of the time span.
+					The string is constructed as an integer or float, followed by a time unit:
+					(d)ays, (H)ours, (M)inutes, (S)econds, (mS) milliseconds, (uS) microseconds
+					(the default is '1d')
 
 		Raises
 		------
 		ValueError
 		"""
-		# Convert any timezones to UTC, and strip timezone information
-		# Numpy doesn't like timezones as of 1.11
-		self.init_timezone_str = timezone
-		self.timezone, self.timezone_str = self._parseTimezone(timezone)
-		t0 = t0.replace(tzinfo=dt.timezone.utc).astimezone(self.timezone)
+		# convert and strip timezone info
+		if t0.tzinfo is not None:
+			t0 = t0.astimezone(dt.timezone.utc).replace(tzinfo=None)
 
 		self.start = t0
-		self.init_timestep_str = timestep
-		self.init_timeperiod_str = timeperiod
-		self.time_step = self._parseTimedelta(timestep)
-		# Check if integer value of timestep
+		self.time_step = self._parseTimestep(timestep)
 		self.end = self._parseTimeperiod(t0, timeperiod)
 		self.time_period = self.end - self.start	
 
@@ -89,13 +75,8 @@ class TimeSpan(object):
 
 
 		self._timearr = np.arange(self.start, self.end+self.time_step, self.time_step).astype(dt.datetime)
-		self.num_steps = len(self._timearr)
-		logger.info("TimeSpan has {} timesteps".format(self.num_steps))
 		self._skyfield_timespan = load.timescale()
 
-		# numpy strips tzinfo
-		for ii in range(len(self._timearr)):
-			self._timearr[ii] = self._timearr[ii].replace(tzinfo=dt.timezone.utc).astimezone(self.timezone)
 
     # Make it callable and return the data for that entry
 	def __call__(self, idx=None):
@@ -129,12 +110,10 @@ class TimeSpan(object):
 
 		self_copy.start = self.start
 		self_copy.init_timestep_str = ''
-		self_copy.init_timezone_str = ''
 		self_copy.init_timeperiod_str = ''
 		self_copy.time_step = None
 
 		self_copy.end = other.end
-		self_copy.num_steps = self.num_steps + other.num_steps
 		self_copy.time_period = other.end - self_copy.start
 
 		self_copy._timearr = np.hstack((self._timearr, other._timearr))
@@ -224,14 +203,8 @@ class TimeSpan(object):
 
 		val = float(timeperiod[0:index])
 		unit = timeperiod[index:]
-		values = np.zeros(9)
-		if unit == 'y':
-			values[8] = val
-		elif unit == 'm':
-			values[7] = val
-		elif unit == 'W':
-			values[6] = val
-		elif unit == 'd':
+		values = np.zeros(6)
+		if unit == 'd':
 			values[5] = val
 		elif unit == 'H':
 			values[4] = val
@@ -248,17 +221,18 @@ class TimeSpan(object):
 						+ " (d)ays, (H)ours, (M)inutes, (S)econds, (mS) milliseconds, (uS) microseconds")
 			raise ValueError("Invalid timeperiod unit:{}".format(unit))
 
-		return t0 + relativedelta(years=values[8], months=values[7], weeks=values[6],
-								days=values[5], hours=values[4], minutes=values[3], 
+		return t0 + relativedelta(days=values[5], hours=values[4], minutes=values[3],
 								seconds=values[2], microseconds=values[0])	# noqa: E126
 
-	def _parseTimedelta(self, timestep):
-		for index, letter in enumerate(timestep):
+	def _parseTimestep(self, timestep:str) -> dt.timedelta:
+		last_idx = 0
+		for idx, letter in enumerate(timestep):
+			last_idx = idx
 			if not (letter.isdigit() or letter == '.'):
 				break
 
-		val = float(timestep[0:index])
-		unit = timestep[index:]
+		val = float(timestep[0:last_idx])
+		unit = timestep[last_idx:]
 		values = np.zeros(6)		
 		if unit == 'd':
 			values[5] = val
@@ -281,30 +255,6 @@ class TimeSpan(object):
 							microseconds=values[0], milliseconds=values[1],
 							minutes=values[3], hours=values[4])
 
-	def _parseTimezone(self, in_str):
-		if in_str[0] == '-':
-			sign = -1
-		else:
-			sign = 1
-		res = in_str.split(':')
-		if len(res) == 1:
-			minutes = float(res[0]) * 60
-		else:
-			hours = int(res[0])
-			minutes = (int(res[1]) + abs(hours) * 60) * sign
-
-		delta = dt.timedelta(minutes=minutes)
-
-		if delta > dt.timedelta(hours=24) or delta < dt.timedelta(hours=-24):
-			logger.error("Timespan timezone should be between -24:00 and +24:00")
-			raise exceptions.OutOfRange("Timespan timezone should be between -24:00 and +24:00")
-
-		h = int(minutes / 60)
-		m = int(abs(minutes - (h * 60)))
-		tz_str = '{:+03}:{:02}'.format(h, m)
-
-		return dt.timezone(delta), tz_str
-
 	def __len__(self):
 		return len(self._timearr)
 
@@ -315,10 +265,8 @@ class TimeSpan(object):
 		self.end = self._timearr[-1]
 		self.init_timeperiod_str = None
 		self.init_timestep_str = None
-		self.init_timezone_str = None
 		self.time_step = None
 		self.time_period = self.end - self.start
-		self.num_steps = len(self._timearr)
 
 	@classmethod
 	def fromDatetime(cls, dt_arr:np.ndarray[dt.datetime], timezone=dt.timezone.utc):
@@ -334,9 +282,7 @@ class TimeSpan(object):
 		t.end = end
 		t.init_timeperiod_str = None
 		t.init_timestep_str = None
-		t.init_timezone_str = None
 		t.time_step = None
 		t.time_period = t.end-t.start
-		t.num_steps = len(t._timearr)
 
 		return t
