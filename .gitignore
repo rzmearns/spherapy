@@ -2,10 +2,12 @@
 ################################
 data/spacetrack
 data/TLEs
+
 # Compiled source #
 ###################
 *.pyc
 *.vscode
+build/
 
 # Environment #
 ############
@@ -36,6 +38,7 @@ spherapy-env/
 *.sqlite
 *.json
 *.console
+*.bsp
 
 # Caches #
 ######################
@@ -43,6 +46,9 @@ spherapy-env/
 *.pytest_cache
 *.cache
 *.tags*
+*.ruff_cache
+*.pytest_cache
+*.mypy_cache
 
 # OS generated files #
 ######################
