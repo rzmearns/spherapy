@@ -1,4 +1,4 @@
-import unittest
+from pytest_check import check
 import numpy as np
 from spherapy.timespan import TimeSpan
 import datetime as dt
@@ -9,8 +9,16 @@ import astropy.units as u
 import logging
 logging.disable(logging.CRITICAL)
 
+## Custom checker
+def checkHasattr(a:object, name:str):
+	__tracebackhide__ = True
+	if hasattr(a, name):
+		return True
+	else:
+		check.fail(f"check {hasattr({a},{name})} == 4")
+		return False
 
-class TestTimeSpan(unittest.TestCase):
+class TestTimeSpan():
 	'''
 	Unit testing for the methods of the TimeSpan class
 	'''
@@ -32,28 +40,28 @@ class TestTimeSpan(unittest.TestCase):
 		minimum_ts = TimeSpan(t0, '1S', '1S')
 
 		# check lengths are correct
-		self.assertEqual(len(first_week), 8)
-		self.assertEqual(len(first_min), 61)
-		self.assertEqual(len(fractional_min), 91)
-		self.assertEqual(len(first_year), 366)
-		self.assertEqual(len(first_decade), 11)
-		self.assertEqual(len(minimum_ts), 2)
+		check.equal(len(first_week), 8)
+		check.equal(len(first_min), 61)
+		check.equal(len(fractional_min), 91)
+		check.equal(len(first_year), 366)
+		check.equal(len(first_decade), 11)
+		check.equal(len(minimum_ts), 2)
 
 		# check start values are correct
-		self.assertEqual(first_week[0], birthday)
-		self.assertEqual(first_min[0], birthday)
-		self.assertEqual(fractional_min[0], t0.replace(tzinfo=dt.timezone.utc))
-		self.assertEqual(first_year[0], birthday)
-		self.assertEqual(first_decade[0], birthday)
-		self.assertEqual(minimum_ts[0], t0.replace(tzinfo=dt.timezone.utc))
+		check.equal(first_week[0], birthday)
+		check.equal(first_min[0], birthday)
+		check.equal(fractional_min[0], t0.replace(tzinfo=dt.timezone.utc))
+		check.equal(first_year[0], birthday)
+		check.equal(first_decade[0], birthday)
+		check.equal(minimum_ts[0], t0.replace(tzinfo=dt.timezone.utc))
 
 		# check end values are correct
-		self.assertEqual(first_week[-1], birthday + dt.timedelta(days=7))
-		self.assertEqual(first_min[-1], birthday + dt.timedelta(minutes=1))
-		self.assertEqual(fractional_min[-1], t0.replace(tzinfo=dt.timezone.utc) + dt.timedelta(minutes=1.5))
-		self.assertEqual(first_year[-1], dt.datetime(1997,9,10, tzinfo=dt.timezone.utc))
-		self.assertEqual(first_decade[-1], dt.datetime(2006,9,8, tzinfo=dt.timezone.utc))
-		self.assertEqual(minimum_ts[-1], t0.replace(tzinfo=dt.timezone.utc) + dt.timedelta(seconds=1))
+		check.equal(first_week[-1], birthday + dt.timedelta(days=7))
+		check.equal(first_min[-1], birthday + dt.timedelta(minutes=1))
+		check.equal(fractional_min[-1], t0.replace(tzinfo=dt.timezone.utc) + dt.timedelta(minutes=1.5))
+		check.equal(first_year[-1], dt.datetime(1997,9,10, tzinfo=dt.timezone.utc))
+		check.equal(first_decade[-1], dt.datetime(2006,9,8, tzinfo=dt.timezone.utc))
+		check.equal(minimum_ts[-1], t0.replace(tzinfo=dt.timezone.utc) + dt.timedelta(seconds=1))
 
 	def test_len(self):
 		t0 = dt.datetime(2000,1,1,12,4,5)
@@ -61,8 +69,8 @@ class TestTimeSpan(unittest.TestCase):
 		first_min = TimeSpan(t0, '1S', '1M')
 		non_int_sec_span = TimeSpan(t0, '1.5S', '5S')
 
-		self.assertEqual(len(first_min), len(first_min._timearr))
-		self.assertEqual(len(non_int_sec_span), len(non_int_sec_span._timearr))
+		check.equal(len(first_min), len(first_min._timearr))
+		check.equal(len(non_int_sec_span), len(non_int_sec_span._timearr))
 
 	def test_attributes(self):
 		'''
@@ -72,14 +80,14 @@ class TestTimeSpan(unittest.TestCase):
 		first_week = TimeSpan(birthday, '1d', '7d')
 
 		# Test attributes exist
-		assert hasattr(first_week,'start')
-		self.assertEqual(first_week.start, birthday.replace(tzinfo=dt.timezone.utc))
-		assert hasattr(first_week,'end')
-		self.assertEqual(first_week.end, dt.datetime(1996,9,17,tzinfo=dt.timezone.utc))
-		assert hasattr(first_week,'time_step')
-		self.assertEqual(first_week.time_step, dt.timedelta(days=1))
-		assert hasattr(first_week,'time_period')
-		self.assertEqual(first_week.time_period, dt.timedelta(days=7))
+		checkHasattr(first_week,'start')
+		check.equal(first_week.start, birthday.replace(tzinfo=dt.timezone.utc))
+		checkHasattr(first_week,'end')
+		check.equal(first_week.end, dt.datetime(1996,9,17,tzinfo=dt.timezone.utc))
+		checkHasattr(first_week,'time_step')
+		check.equal(first_week.time_step, dt.timedelta(days=1))
+		checkHasattr(first_week,'time_period')
+		check.equal(first_week.time_period, dt.timedelta(days=7))
 
 	def test_nonIntegerSpans(self):
 		birthday = dt.datetime(1996, 9, 10)
@@ -90,13 +98,13 @@ class TestTimeSpan(unittest.TestCase):
 		non_int_sec_span = TimeSpan(birthday, '1.5S', '5S')
 
 		# check correct number of elements
-		self.assertEqual(len(non_int_day_span), 5)
-		self.assertEqual(len(non_int_sec_span), 4)
+		check.equal(len(non_int_day_span), 5)
+		check.equal(len(non_int_sec_span), 4)
 
 		# Test integer number of steps
-		self.assertEqual(len(TimeSpan(t1, '1.75M', '1H')), 35)
-		self.assertEqual(TimeSpan(t1, '1.75M', '1H').time_period.total_seconds(), 3570)
-		self.assertEqual(TimeSpan(t1, '1.75M', '1H').end, t1.replace(tzinfo=dt.timezone.utc) + dt.timedelta(seconds=3570))
+		check.equal(len(TimeSpan(t1, '1.75M', '1H')), 35)
+		check.equal(TimeSpan(t1, '1.75M', '1H').time_period.total_seconds(), 3570)
+		check.equal(TimeSpan(t1, '1.75M', '1H').end, t1.replace(tzinfo=dt.timezone.utc) + dt.timedelta(seconds=3570))
 
 	def test_parsing(self):
 		'''
@@ -116,7 +124,7 @@ class TestTimeSpan(unittest.TestCase):
 		TimeSpan(t0, '1d', '300d')
 		TimeSpan(t0, '1d', '3650d')
 
-		with self.assertRaises(ValueError):
+		with check.raises(ValueError):
 			# Test period smaller than timestep
 			TimeSpan(t0, '1d', '1M')
 			# Test incorrect step unit
@@ -125,10 +133,10 @@ class TestTimeSpan(unittest.TestCase):
 			TimeSpan(t0, '1d', '1j')
 		
 		# Test non integer value of timestep
-		self.assertEqual(len(TimeSpan(t0, '1.5M', '1H')), 41)
+		check.equal(len(TimeSpan(t0, '1.5M', '1H')), 41)
 		
 		# Test non integer value of period
-		self.assertEqual(len(TimeSpan(t0, '1M', '1.5H')), 91)
+		check.equal(len(TimeSpan(t0, '1M', '1.5H')), 91)
 
 	def test_leaps(self):
 
@@ -138,12 +146,12 @@ class TestTimeSpan(unittest.TestCase):
 		# Previous leap second Dec 31 2016 23:59:60
 		astro_delta = astrotime.Time('2017-01-01T0:0:1') - astrotime.Time('2016-12-30T0:0:1')
 		astro_delta.format = 'sec'
-		self.assertNotEqual(len(TimeSpan(t0, '1S', '2d'))-1, astro_delta.value)
+		check.not_equal(len(TimeSpan(t0, '1S', '2d'))-1, astro_delta.value)
 
 		# Check leap year handling
 		ts = TimeSpan(dt.datetime(2016, 1, 1), '1d', '366d')
-		self.assertEqual(len(ts), 367)
-		self.assertEqual(ts[-1], dt.datetime(2017,1,1, tzinfo=dt.timezone.utc))
+		check.equal(len(ts), 367)
+		check.equal(ts[-1], dt.datetime(2017,1,1, tzinfo=dt.timezone.utc))
 
 	def test_conversions(self):
 
@@ -160,22 +168,22 @@ class TestTimeSpan(unittest.TestCase):
 		first_year = TimeSpan(birthday, '1d', '365d')
 		first_decade = TimeSpan(birthday, '365d','3650d')
 
-		self.assertEqual(len(dt_week), len(astropy_week))
+		check.equal(len(dt_week), len(astropy_week))
 		# Assert they are of the correct types (dt/astropy.Time)
-		self.assertIsInstance(dt_week[0], type(birthday))
-		self.assertIsInstance(astropy_week[0], type(astrotime.Time.now()))
+		check.is_instance(dt_week[0], type(birthday))
+		check.is_instance(astropy_week[0], type(astrotime.Time.now()))
 		# Assert the time deltas of each are one day
-		self.assertEqual(dt_week[1] - dt_week[0], dt.timedelta(days=1))
-		self.assertTrue(astrotime.TimeDelta(1 * u.day, scale='tai').isclose(astropy_week[1] - astropy_week[0]))
+		check.equal(dt_week[1] - dt_week[0], dt.timedelta(days=1))
+		check.is_true(astrotime.TimeDelta(1 * u.day, scale='tai').isclose(astropy_week[1] - astropy_week[0]))
 		# Assert the timedelta is consistent throughout the week
-		self.assertEqual(dt_week[6] - dt_week[5], dt_week[1] - dt_week[0])
-		self.assertTrue(astrotime.TimeDelta(1 * u.day, scale='tai').isclose(astropy_week[6] - astropy_week[5]))
+		check.equal(dt_week[6] - dt_week[5], dt_week[1] - dt_week[0])
+		check.is_true(astrotime.TimeDelta(1 * u.day, scale='tai').isclose(astropy_week[6] - astropy_week[5]))
 		# Assert the first day for each is Sept 10, 1996
-		self.assertEqual(dt_week[0], dt.datetime(1996, 9, 10, tzinfo=dt.timezone.utc))
-		self.assertTrue(astrotime.Time('1996-09-10').isclose(astropy_week[0]))
+		check.equal(dt_week[0], dt.datetime(1996, 9, 10, tzinfo=dt.timezone.utc))
+		check.is_true(astrotime.Time('1996-09-10').isclose(astropy_week[0]))
 		# Assert the last day for each is Sept 17, 1996
-		self.assertEqual(dt_week[-1], dt.datetime(1996, 9, 17, tzinfo=dt.timezone.utc))
-		self.assertTrue(astrotime.Time('1996-09-17').isclose(astropy_week[-1]))
+		check.equal(dt_week[-1], dt.datetime(1996, 9, 17, tzinfo=dt.timezone.utc))
+		check.is_true(astrotime.Time('1996-09-17').isclose(astropy_week[-1]))
 
 	def test_closestTo(self):
 		'''
@@ -193,15 +201,15 @@ class TestTimeSpan(unittest.TestCase):
 
 		# Test where the target date/time is in the TimeSpan
 		res_time, res_index = timespan.getClosest(inner_target)
-		self.assertEqual(res_index, (inner_target - t0).total_seconds())
+		check.equal(res_index, (inner_target - t0).total_seconds())
 		# Test where the target date/time is not in the TimeSpan
 		res_time, res_index = timespan.getClosest(pre_target)
-		self.assertEqual(res_index, 0)
+		check.equal(res_index, 0)
 		res_time, res_index = timespan.getClosest(post_target)
-		self.assertEqual(res_index, len(timespan) - 1)
+		check.equal(res_index, len(timespan) - 1)
 		# Test where there's a tie: ensure it picks the earlier date
 		res_time, res_index = timespan.getClosest(t0 + half_second)
-		self.assertEqual(res_index, 0)
+		check.equal(res_index, 0)
 		
 	def test_timeZones(self):
 		"""
@@ -227,13 +235,13 @@ class TestTimeSpan(unittest.TestCase):
 		timespan_2130 = TimeSpan(t2, '1S', '1H')
 
 		# check timespan and timespan initialised with UTC time zone have all equal elements
-		self.assertEqual(len(timespan_utc), len(timespan))
+		check.equal(len(timespan_utc), len(timespan))
 		for ii in range(len(timespan)):
-			self.assertEqual(timespan_utc[ii], timespan[ii])
+			check.equal(timespan_utc[ii], timespan[ii])
 
 		# check time offset is applied correctly
-		self.assertEqual(timespan_0545[0], t.replace(tzinfo=dt.timezone.utc))
-		self.assertEqual(timespan_2130[0], t.replace(tzinfo=dt.timezone.utc))
+		check.equal(timespan_0545[0], t.replace(tzinfo=dt.timezone.utc))
+		check.equal(timespan_2130[0], t.replace(tzinfo=dt.timezone.utc))
 
 		# check difference between UTC derived timespan and other timezone derived timespan is always 0
 		np.testing.assert_allclose(np.vectorize(lambda x: x.total_seconds())(timespan.asDatetime() - timespan_0545.asDatetime()),
@@ -254,8 +262,8 @@ class TestTimeSpan(unittest.TestCase):
 		timespan_2130 = TimeSpan(t2, '1S', '1H')
 
 		# check time offset is applied correctly
-		self.assertEqual(timespan_0545[0], dt.datetime(2008, 6, 4, 20, 19, 25, tzinfo=dt.timezone.utc))
-		self.assertEqual(timespan_2130[0], dt.datetime(2008, 6, 5, 4, 34, 25, tzinfo=dt.timezone.utc))
+		check.equal(timespan_0545[0], dt.datetime(2008, 6, 4, 20, 19, 25, tzinfo=dt.timezone.utc))
+		check.equal(timespan_2130[0], dt.datetime(2008, 6, 5, 4, 34, 25, tzinfo=dt.timezone.utc))
 
 		# check difference between timespan and timezone aware timespan is always equal to the timezone
 		np.testing.assert_allclose(np.vectorize(lambda x: x.total_seconds())(timespan.asDatetime() - timespan_0545.asDatetime()),
@@ -273,11 +281,11 @@ class TestTimeSpan(unittest.TestCase):
 		timespan_utc = TimeSpan(t0, '1S', '1H')
 		timespan_0545 = TimeSpan(t1, '1S', '1H')
 
-		self.assertEqual(timespan_utc[0].tzinfo, dt.timezone.utc)
-		self.assertEqual(timespan_utc.start.tzinfo, dt.timezone.utc)
-		self.assertEqual(timespan_utc.end.tzinfo, dt.timezone.utc)
+		check.equal(timespan_utc[0].tzinfo, dt.timezone.utc)
+		check.equal(timespan_utc.start.tzinfo, dt.timezone.utc)
+		check.equal(timespan_utc.end.tzinfo, dt.timezone.utc)
 		for ii in range(len(timespan_utc)):
-			self.assertEqual(timespan_utc[ii].tzinfo,timespan_0545[ii].tzinfo)
+			check.equal(timespan_utc[ii].tzinfo,timespan_0545[ii].tzinfo)
 
 
 	def test_secondsSinceStart(self):
@@ -287,7 +295,7 @@ class TestTimeSpan(unittest.TestCase):
 		birthday = dt.datetime(1996, 9, 10)
 		timespan = TimeSpan(birthday, '1H', '1d')
 		seconds_elapsed = timespan.secondsSinceStart()
-		self.assertEqual(len(seconds_elapsed), 25)
-		self.assertEqual(seconds_elapsed[0], 0)
+		check.equal(len(seconds_elapsed), 25)
+		check.equal(seconds_elapsed[0], 0)
 		np.testing.assert_almost_equal(seconds_elapsed[1], 3600)
 		np.testing.assert_almost_equal(seconds_elapsed[-2], 82800)
