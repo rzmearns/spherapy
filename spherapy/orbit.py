@@ -482,18 +482,25 @@ class Orbit(object):
 			pos[ii, :] = skyfld_earthsat.at(skyfld_ts.utc(timestep)).position.km
 			vel[ii, :] = skyfld_earthsat.at(skyfld_ts.utc(timestep)).velocity.km_per_s * 1000
 
+		ecef = satrec.frame_xyz_and_velocity(itrs)
+		pos_ecef = ecef[0].km.T
+		vel_ecef = ecef[1].km_per_s.T * 1000
+
 		period = 2 * np.pi / skyfld_earthsat.model.no_kozai * 60
 		period_steps = int(period / timespan.time_step.total_seconds())
+
+		lat, lon = orbit_u.convertCartesianToEllipsoidGeodetic(pos_ecef)
 
 		attr_dct['timespan'] = timespan
 		attr_dct['gen_type'] = 'propagated from orbital param'
 		attr_dct['central_body'] = 'Earth'
 		attr_dct['pos'] = pos
-		# TODO: altitude should be sourced from central body
 		attr_dct['alt'] = np.linalg.norm(pos, axis=1) - consts.R_EARTH
 		attr_dct['vel'] = vel
-		attr_dct['lat'] = None
-		attr_dct['lon'] = None
+		attr_dct['pos_ecef'] = pos_ecef
+		attr_dct['vel_ecef'] = vel_ecef
+		attr_dct['lat'] = lat
+		attr_dct['lon'] = lon
 		attr_dct['ecc'] = ecc * np.ones(len(timespan))
 		attr_dct['inc'] = inc * np.ones(len(timespan))
 		attr_dct['semi_major'] = a * np.ones(len(timespan))
@@ -603,8 +610,6 @@ class Orbit(object):
 		# TODO: altitude should be sourced from central body
 		attr_dct['alt'] = np.linalg.norm(pos, axis=1) - consts.R_EARTH
 		attr_dct['vel'] = vel
-		attr_dct['lat'] = None
-		attr_dct['lon'] = None
 		attr_dct['ecc'] = ecc * np.ones(len(timespan))
 		attr_dct['inc'] = inc * np.ones(len(timespan))
 		attr_dct['semi_major'] = a * np.ones(len(timespan))
