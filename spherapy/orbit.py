@@ -373,7 +373,7 @@ class Orbit(object):
 		attr_dct['gen_type'] = 'propagated from TLE'
 		attr_dct['central_body'] = 'Earth'
 		attr_dct['pos'] = pos
-		# attr_dct['alt'] = np.linalg.norm(pos, axis=1) - consts.R_EARTH
+		attr_dct['alt'] = np.linalg.norm(pos, axis=1) - consts.R_EARTH
 		attr_dct['pos_ecef'] = pos_ecef
 		attr_dct['vel_ecef'] = vel_ecef
 		attr_dct['vel'] = vel
@@ -489,7 +489,8 @@ class Orbit(object):
 		attr_dct['gen_type'] = 'propagated from orbital param'
 		attr_dct['central_body'] = 'Earth'
 		attr_dct['pos'] = pos
-		# attr_dct['alt'] = np.linalg.norm(pos, axis=1) - consts.R_EARTH
+		# TODO: altitude should be sourced from central body
+		attr_dct['alt'] = np.linalg.norm(pos, axis=1) - consts.R_EARTH
 		attr_dct['vel'] = vel
 		attr_dct['lat'] = None
 		attr_dct['lon'] = None
@@ -599,6 +600,8 @@ class Orbit(object):
 		attr_dct['gen_type'] = 'analytical orbit'
 		attr_dct['central_body'] = body
 		attr_dct['pos'] = pos
+		# TODO: altitude should be sourced from central body
+		attr_dct['alt'] = np.linalg.norm(pos, axis=1) - consts.R_EARTH
 		attr_dct['vel'] = vel
 		attr_dct['lat'] = None
 		attr_dct['lon'] = None
