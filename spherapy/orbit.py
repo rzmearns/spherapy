@@ -376,6 +376,7 @@ class Orbit(object):
 		attr_dct['gen_type'] = 'propagated from TLE'
 		attr_dct['central_body'] = 'Earth'
 		attr_dct['pos'] = pos
+		# attr_dct['alt'] = np.linalg.norm(pos, axis=1) - consts.R_EARTH
 		attr_dct['pos_ecef'] = pos_ecef
 		attr_dct['vel_ecef'] = vel_ecef
 		attr_dct['vel'] = vel
@@ -438,24 +439,19 @@ class Orbit(object):
 				raise exceptions.OutOfRange("Semimajor axis, {}, is too close to Earth".format(a))
 		if ecc > 1 or ecc < 0:
 			logger.error("Eccentricity, {}, is non circular or eliptical".format(ecc))
-			if not unsafe:
-				raise exceptions.OutOfRange("Eccentricity, {}, is non circular or eliptical".format(ecc))
+			raise exceptions.OutOfRange("Eccentricity, {}, is non circular or eliptical".format(ecc))
 		if inc > 180 or inc < -180:
 			logger.error("Inclination, {}, is out of range, should be -180 < inc < 180".format(inc))
-			if not unsafe:
-				raise exceptions.OutOfRange("Inclination, {}, is out of range, should be -180 < inc < 180".format(inc))
+			raise exceptions.OutOfRange("Inclination, {}, is out of range, should be -180 < inc < 180".format(inc))
 		if raan > 360 or raan < 0:
 			logger.error("RAAN, {}, is out of range, should be 0 < inc < 360".format(inc))
-			if not unsafe:
-				raise exceptions.OutOfRange("RAAN, {}, is out of range, should be 0 < inc < 360".format(inc))
+			raise exceptions.OutOfRange("RAAN, {}, is out of range, should be 0 < inc < 360".format(inc))
 		if argp > 360 or argp < 0:
 			logger.error("Argument of periapsis, {}, is out of range, should be 0 < argp < 360".format(inc))
-			if not unsafe:
-				raise exceptions.OutOfRange("Argument of periapsis, {}, is out of range, should be 0 < argp < 360".format(inc))
+			raise exceptions.OutOfRange("Argument of periapsis, {}, is out of range, should be 0 < argp < 360".format(inc))
 		if mean_nu > 360 or mean_nu < 0:
 			logger.error("Mean anomaly, {}, is out of range, should be 0 < mean_nu < 360".format(inc))
-			if not unsafe:
-				raise exceptions.OutOfRange("Mean anomaly, {}, is out of range, should be 0 < mean_nu < 360".format(inc))
+			raise exceptions.OutOfRange("Mean anomaly, {}, is out of range, should be 0 < mean_nu < 360".format(inc))
 
 		attr_dct = createEmptyOrbitAttrDict()
 		attr_dct['name'] = name
@@ -496,6 +492,7 @@ class Orbit(object):
 		attr_dct['gen_type'] = 'propagated from orbital param'
 		attr_dct['central_body'] = 'Earth'
 		attr_dct['pos'] = pos
+		# attr_dct['alt'] = np.linalg.norm(pos, axis=1) - consts.R_EARTH
 		attr_dct['vel'] = vel
 		attr_dct['lat'] = None
 		attr_dct['lon'] = None
