@@ -715,9 +715,6 @@ class Orbit(object):
 			logger.error("{} cannot be used to index an orbital velocity".format(time))
 			raise ValueError("{} cannot be used to index an orbital velocity".format(time))
 
-	def _attributiseDataDict(self, d:dict[str,Any]):
-		for k,v in d.items():
-			setattr(self,k,v)
 
 	def _calcEclipse(self, pos, sun):
 		earth_ang_size = np.arctan(consts.R_EARTH/consts.AU)
