@@ -36,8 +36,6 @@ import types
 
 logger = logging.getLogger(__name__)
 
-# TODO:
-# functional call to get position at time
 
 class OrbitAttrDict(TypedDict):
 	name: None|str
@@ -63,7 +61,6 @@ class OrbitAttrDict(TypedDict):
 	inc: None|np.ndarray[tuple[int], np.dtype[np.float_]]
 	raan: None|np.ndarray[tuple[int], np.dtype[np.float_]]
 	argp: None|np.ndarray[tuple[int], np.dtype[np.float_]]
-
 
 def createEmptyOrbitAttrDict() -> OrbitAttrDict:
 	return OrbitAttrDict({
@@ -644,77 +641,46 @@ class Orbit(object):
 			logger.info(f'Loading orbit file from {file}')
 			return pickle.load(fp)
 
-	def getPosition(self, time):
-		'''Return the position at the specified index or (closest) time
+	def getPosition(self, search_time):
+		'''Return the position at the specified or closest time
 
-		Parameters
-		----------
-		time : {int, datetime.datetime, astropy.Time}
-			The index of the timespan, or a particular time to fetch the position
-			If a particular time is specified, the nearest timestep within the timespan will be returned
+		Args:
+			search_time: the timestamp to search for
 
-		Returns
-		-------
-		(3,) ndarray
-			Orbital position (km)
+		Returns:
+			position (km)
 
-		Raises
-		------
-		ValueError
-			Raises a ValueError if 'time' is not an integer or a time type
+		Raises:
+			ValueError: Raised 'search_time' is not a valid type
 		'''
-		if isinstance(time, int):
-			return self.pos[time, :]
-		elif isinstance(time, dt.datetime):
-			closest_time, index = list_u.get_closest(self.timespan[:], time)
-			if abs((closest_time - time).total_seconds()) > 60:
-				logger.warning("{}, is more than 60s from the nearest timestep, choose a smaller timestep".format(time))
-			return self.pos[index, :]
-		elif isinstance(time, astropyTime):
-			closest_time, index = list_u.get_closest(self.timespan[:], time.to_datetime())
-			if abs((closest_time - time.to_datetime()).total_seconds()) > 60:
-				logger.warning("{}, is more than 60s from the nearest timestep, choose a smaller timestep".format(time))
-			return self.pos[index, :]
-		else:
-			logger.error("{} cannot be used to index an orbital position".format(time))
-			raise ValueError("{} cannot be used to index an orbital position".format(time))
+		return self._getAttributeClosestTime(self.pos, search_time)
 
-	def getVelocity(self, time):
-		'''Return the position at the specified index or (closest) time
+	def getVelocity(self, search_time:dt.datetime|astropyTime) -> np.ndarray[tuple[int], np.dtype[np.float_]]:
+		'''Return the velocity at the specified or closest time
 
-		Parameters
-		----------
-		time : {int, datetime.datetime, astropy.Time}
-			The index of the timespan, or a particular time to fetch the velocity
-			If a particular time is specified, the nearest timestep within the timespan will be returned
+		Args:
+			search_time: the timestamp to search for
 
-		Returns
-		-------
-		(3,) ndarray
-			Orbital velocity (m/s)
+		Returns:
+			velocity (m/s)
 
-		Raises
-		------
-		ValueError
-			Raises a ValueError if 'time' is not an integer or a time type
+		Raises:
+			ValueError: Raised 'search_time' is not a valid type
 		'''
-		if isinstance(time, int):
-			return self.vel[time, :]
-		elif isinstance(time, dt.datetime):
-			closest_time, index = list_u.get_closest(self.timespan[:], time)
-			if abs((closest_time - time).total_seconds()) > 60:
-				logger.warning("{}, is more than 60s from the nearest timestep, choose a smaller timestep".format(time))
-			return self.vel[index, :]
-		elif isinstance(time, astropyTime):
-			closest_time, index = list_u.get_closest(self.timespan[:], time.to_datetime())
-			if abs((closest_time - time.to_datetime()).total_seconds()) > 60:
-				logger.warning("{}, is more than 60s from the nearest timestep, choose a smaller timestep".format(time))
+		return self._getAttributeClosestTime(self.vel, search_time)
 
-			return self.vel[index, :]
+	def _getAttributeClosestTime(self, attr:Any, search_time:dt.datetime|astropyTime) -> np.ndarray[tuple[int], np.dtype[np.float_]]:
+
+		if isinstance(search_time, dt.datetime):
+			_, closest_idx = self.timespan.getClosest(search_time)
+		elif isinstance(search_time, astropyTime):
+			search_dt = search_time.to_datetime()
+			_, closest_idx = self.timespan.getClosest(search_dt)
 		else:
-			logger.error("{} cannot be used to index an orbital velocity".format(time))
-			raise ValueError("{} cannot be used to index an orbital velocity".format(time))
+			logger.error("%s cannot be used to index %s", search_time, attr)
+			raise ValueError(f"{search_time} cannot be used to index {attr}")
 
+		return attr[closest_idx, :]
 
 	def _calcEclipse(self, pos, sun):
 		earth_ang_size = np.arctan(consts.R_EARTH/consts.AU)
@@ -732,7 +698,6 @@ class Orbit(object):
 
 	def serialise(self):
 		raise NotImplementedError
-
 
 
 def _findClosestEpochIndices(target, values):
