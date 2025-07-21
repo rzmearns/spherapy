@@ -113,7 +113,6 @@ def validateTypedDict(obj:Any, typ: Any) -> bool:
 		elif not genericValidator(attr_value, spec_attr_type):
 			# check all other types
 			raise TypeError(f'{attr_name} is type {type(attr_value)}, should be {spec_attr_type}')
-			return False
 	return True
 
 def NoneValidator(obj:Any, check_type:Any) -> bool:
@@ -265,8 +264,6 @@ class Orbit(object):
 		# Then assume it stops at the last timestep.
 		vel = attr_dct['pos'][1:] - attr_dct['pos'][:-1]
 		attr_dct['vel'] = np.concatenate((vel, np.array([[0, 0, 0]])))
-		attr_dct['period'] = None
-		attr_dct['period_steps'] = 1
 		attr_dct['name'] = 'Sat from position list'
 		attr_dct['gen_type'] = 'position list'
 
@@ -370,6 +367,7 @@ class Orbit(object):
 			TLE_epochs = np.concatenate((TLE_epochs, np.tile(tle_epoch, len(sub_timespan))))
 
 		attr_dct['timespan'] = timespan
+		attr_dct['satcat_id'] = int(skyfld_earth_sats[0].target_name.split('#')[-1].split(' ')[0])
 		attr_dct['gen_type'] = 'propagated from TLE'
 		attr_dct['central_body'] = 'Earth'
 		attr_dct['pos'] = pos
@@ -451,7 +449,6 @@ class Orbit(object):
 			raise exceptions.OutOfRange("Mean anomaly, {}, is out of range, should be 0 < mean_nu < 360".format(inc))
 
 		attr_dct = createEmptyOrbitAttrDict()
-		attr_dct['name'] = name
 
 		skyfld_ts = load.timescale(builtin=True)
 
@@ -482,25 +479,18 @@ class Orbit(object):
 			pos[ii, :] = skyfld_earthsat.at(skyfld_ts.utc(timestep)).position.km
 			vel[ii, :] = skyfld_earthsat.at(skyfld_ts.utc(timestep)).velocity.km_per_s * 1000
 
-		ecef = satrec.frame_xyz_and_velocity(itrs)
-		pos_ecef = ecef[0].km.T
-		vel_ecef = ecef[1].km_per_s.T * 1000
+		# TODO: calculate ecef and lat,lon values. satrec doesn't have a frame_xyz_and_velocity in this case
 
 		period = 2 * np.pi / skyfld_earthsat.model.no_kozai * 60
 		period_steps = int(period / timespan.time_step.total_seconds())
 
-		lat, lon = orbit_u.convertCartesianToEllipsoidGeodetic(pos_ecef)
-
+		attr_dct['name'] = name
 		attr_dct['timespan'] = timespan
 		attr_dct['gen_type'] = 'propagated from orbital param'
 		attr_dct['central_body'] = 'Earth'
 		attr_dct['pos'] = pos
 		attr_dct['alt'] = np.linalg.norm(pos, axis=1) - consts.R_EARTH
 		attr_dct['vel'] = vel
-		attr_dct['pos_ecef'] = pos_ecef
-		attr_dct['vel_ecef'] = vel_ecef
-		attr_dct['lat'] = lat
-		attr_dct['lon'] = lon
 		attr_dct['ecc'] = ecc * np.ones(len(timespan))
 		attr_dct['inc'] = inc * np.ones(len(timespan))
 		attr_dct['semi_major'] = a * np.ones(len(timespan))
@@ -582,7 +572,6 @@ class Orbit(object):
 			raise exceptions.OutOfRange("Mean anomaly, {}, is out of range, should be 0 < mean_nu < 360".format(inc))
 
 		attr_dct = createEmptyOrbitAttrDict()
-		attr_dct['name'] = name
 
 		logger.info("Creating analytical orbit")
 		orb = hapsiraOrbit.from_classical(central_body,
@@ -603,6 +592,7 @@ class Orbit(object):
 		period = orb.period.unit.in_units('s') * orb.period.value
 		period_steps = int(period / timespan.time_step.total_seconds())
 
+		attr_dct['name'] = name
 		attr_dct['timespan'] = timespan
 		attr_dct['gen_type'] = 'analytical orbit'
 		attr_dct['central_body'] = body
@@ -615,7 +605,6 @@ class Orbit(object):
 		attr_dct['semi_major'] = a * np.ones(len(timespan))
 		attr_dct['raan'] = raan * np.ones(len(timespan))
 		attr_dct['argp'] = argp * np.ones(len(timespan))
-		attr_dct['TLE_epochs'] = None
 		attr_dct['period'] = period
 		attr_dct['period_steps'] = period_steps
 
