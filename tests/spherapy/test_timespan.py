@@ -40,20 +40,20 @@ class TestTimeSpan(unittest.TestCase):
 		self.assertEqual(len(minimum_ts), 2)
 
 		# check start values are correct
-		self.assertEqual(first_week[0], birthday.replace(tzinfo=None))
-		self.assertEqual(first_min[0], birthday.replace(tzinfo=None))
-		self.assertEqual(fractional_min[0], t0)
-		self.assertEqual(first_year[0], birthday.replace(tzinfo=None))
-		self.assertEqual(first_decade[0], birthday.replace(tzinfo=None))
-		self.assertEqual(minimum_ts[0], t0)
+		self.assertEqual(first_week[0], birthday)
+		self.assertEqual(first_min[0], birthday)
+		self.assertEqual(fractional_min[0], t0.replace(tzinfo=dt.timezone.utc))
+		self.assertEqual(first_year[0], birthday)
+		self.assertEqual(first_decade[0], birthday)
+		self.assertEqual(minimum_ts[0], t0.replace(tzinfo=dt.timezone.utc))
 
 		# check end values are correct
-		self.assertEqual(first_week[-1], birthday.replace(tzinfo=None) + dt.timedelta(days=7))
-		self.assertEqual(first_min[-1], birthday.replace(tzinfo=None) + dt.timedelta(minutes=1))
-		self.assertEqual(fractional_min[-1], t0 + dt.timedelta(minutes=1.5))
-		self.assertEqual(first_year[-1], dt.datetime(1997,9,10))
-		self.assertEqual(first_decade[-1], dt.datetime(2006,9,8))
-		self.assertEqual(minimum_ts[-1], t0 + dt.timedelta(seconds=1))
+		self.assertEqual(first_week[-1], birthday + dt.timedelta(days=7))
+		self.assertEqual(first_min[-1], birthday + dt.timedelta(minutes=1))
+		self.assertEqual(fractional_min[-1], t0.replace(tzinfo=dt.timezone.utc) + dt.timedelta(minutes=1.5))
+		self.assertEqual(first_year[-1], dt.datetime(1997,9,10, tzinfo=dt.timezone.utc))
+		self.assertEqual(first_decade[-1], dt.datetime(2006,9,8, tzinfo=dt.timezone.utc))
+		self.assertEqual(minimum_ts[-1], t0.replace(tzinfo=dt.timezone.utc) + dt.timedelta(seconds=1))
 
 	def test_len(self):
 		t0 = dt.datetime(2000,1,1,12,4,5)
@@ -73,9 +73,9 @@ class TestTimeSpan(unittest.TestCase):
 
 		# Test attributes exist
 		assert hasattr(first_week,'start')
-		self.assertEqual(first_week.start, birthday)
+		self.assertEqual(first_week.start, birthday.replace(tzinfo=dt.timezone.utc))
 		assert hasattr(first_week,'end')
-		self.assertEqual(first_week.end, dt.datetime(1996,9,17))
+		self.assertEqual(first_week.end, dt.datetime(1996,9,17,tzinfo=dt.timezone.utc))
 		assert hasattr(first_week,'time_step')
 		self.assertEqual(first_week.time_step, dt.timedelta(days=1))
 		assert hasattr(first_week,'time_period')
@@ -96,7 +96,7 @@ class TestTimeSpan(unittest.TestCase):
 		# Test integer number of steps
 		self.assertEqual(len(TimeSpan(t1, '1.75M', '1H')), 35)
 		self.assertEqual(TimeSpan(t1, '1.75M', '1H').time_period.total_seconds(), 3570)
-		self.assertEqual(TimeSpan(t1, '1.75M', '1H').end, t1 + dt.timedelta(seconds=3570))
+		self.assertEqual(TimeSpan(t1, '1.75M', '1H').end, t1.replace(tzinfo=dt.timezone.utc) + dt.timedelta(seconds=3570))
 
 	def test_parsing(self):
 		'''
@@ -143,8 +143,7 @@ class TestTimeSpan(unittest.TestCase):
 		# Check leap year handling
 		ts = TimeSpan(dt.datetime(2016, 1, 1), '1d', '366d')
 		self.assertEqual(len(ts), 367)
-		self.assertEqual(ts[-1], dt.datetime(2017,1,1))
-
+		self.assertEqual(ts[-1], dt.datetime(2017,1,1, tzinfo=dt.timezone.utc))
 
 	def test_conversions(self):
 
@@ -172,10 +171,10 @@ class TestTimeSpan(unittest.TestCase):
 		self.assertEqual(dt_week[6] - dt_week[5], dt_week[1] - dt_week[0])
 		self.assertTrue(astrotime.TimeDelta(1 * u.day, scale='tai').isclose(astropy_week[6] - astropy_week[5]))
 		# Assert the first day for each is Sept 10, 1996
-		self.assertEqual(dt_week[0], dt.datetime(1996, 9, 10))
+		self.assertEqual(dt_week[0], dt.datetime(1996, 9, 10, tzinfo=dt.timezone.utc))
 		self.assertTrue(astrotime.Time('1996-09-10').isclose(astropy_week[0]))
 		# Assert the last day for each is Sept 17, 1996
-		self.assertEqual(dt_week[-1], dt.datetime(1996, 9, 17))
+		self.assertEqual(dt_week[-1], dt.datetime(1996, 9, 17, tzinfo=dt.timezone.utc))
 		self.assertTrue(astrotime.Time('1996-09-17').isclose(astropy_week[-1]))
 
 	def test_closestTo(self):
@@ -233,8 +232,8 @@ class TestTimeSpan(unittest.TestCase):
 			self.assertEqual(timespan_utc[ii], timespan[ii])
 
 		# check time offset is applied correctly
-		self.assertEqual(timespan_0545[0], t)
-		self.assertEqual(timespan_2130[0], t)
+		self.assertEqual(timespan_0545[0], t.replace(tzinfo=dt.timezone.utc))
+		self.assertEqual(timespan_2130[0], t.replace(tzinfo=dt.timezone.utc))
 
 		# check difference between UTC derived timespan and other timezone derived timespan is always 0
 		np.testing.assert_allclose(np.vectorize(lambda x: x.total_seconds())(timespan.asDatetime() - timespan_0545.asDatetime()),
@@ -255,14 +254,31 @@ class TestTimeSpan(unittest.TestCase):
 		timespan_2130 = TimeSpan(t2, '1S', '1H')
 
 		# check time offset is applied correctly
-		self.assertEqual(timespan_0545[0], dt.datetime(2008, 6, 4, 20, 19, 25))
-		self.assertEqual(timespan_2130[0], dt.datetime(2008, 6, 5, 4, 34, 25))
+		self.assertEqual(timespan_0545[0], dt.datetime(2008, 6, 4, 20, 19, 25, tzinfo=dt.timezone.utc))
+		self.assertEqual(timespan_2130[0], dt.datetime(2008, 6, 5, 4, 34, 25, tzinfo=dt.timezone.utc))
 
 		# check difference between timespan and timezone aware timespan is always equal to the timezone
 		np.testing.assert_allclose(np.vectorize(lambda x: x.total_seconds())(timespan.asDatetime() - timespan_0545.asDatetime()),
 													tz_offset_0545.total_seconds()*np.ones(len(timespan)))
 		np.testing.assert_allclose(np.vectorize(lambda x: x.total_seconds())(timespan.asDatetime() - timespan_2130.asDatetime()),
 													tz_offset_2130.total_seconds()*np.ones(len(timespan)))
+
+	def test_UTC(self):
+		t0 = dt.datetime(2008, 6, 5, 2, 4, 25, tzinfo=dt.timezone.utc)
+
+		tz_offset_0545 = dt.timedelta(hours=5, minutes=45) # Kathmandu
+		# time @ 1998-06-05 02:04:25 UTC but expressed in timezone +05:45
+		t1 = dt.datetime(2008,6,5,7,49,25, tzinfo=dt.timezone(tz_offset_0545))
+
+		timespan_utc = TimeSpan(t0, '1S', '1H')
+		timespan_0545 = TimeSpan(t1, '1S', '1H')
+
+		self.assertEqual(timespan_utc[0].tzinfo, dt.timezone.utc)
+		self.assertEqual(timespan_utc.start.tzinfo, dt.timezone.utc)
+		self.assertEqual(timespan_utc.end.tzinfo, dt.timezone.utc)
+		for ii in range(len(timespan_utc)):
+			self.assertEqual(timespan_utc[ii].tzinfo,timespan_0545[ii].tzinfo)
+
 
 	def test_secondsSinceStart(self):
 		'''

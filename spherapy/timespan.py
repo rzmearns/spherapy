@@ -13,20 +13,22 @@ logger = logging.getLogger(__name__)
 class TimeSpan(object):
 
 	def __init__(self, t0, timestep='1S', timeperiod='10S'):
-		"""Creates a series of timestamps.
+		"""Creates a series of timestamps in UTC.
 		Difference between each timestamp = timestep
 		Total duration = integer number of timesteps closest to timeperiod
 			If timeperiod is an integer multiple of timestep,
 			then TimeSpan[-1] - TimeSpan[0] = timeperiod
 			If timeperiod is NOT an integer multiple of timestep,
 
-		Does not account for Leap seconds, all days have 86400 seconds in them
+		Does not account for Leap seconds, similar to all Posix compliant UTC based time
+			representations. see: https://numpy.org/doc/stable/reference/arrays.datetime.html#datetime64-shortcomings
+			for equivalent shortcomings.
 		Always contains at least two timestamps
 
 		Parameters
 		t0: datetime defining the start of the TimeSpan.
 				If timezone naive, assumed to be in UTC
-				If timezone aware, will be converted to UTC, and then made naive
+				If timezone aware, will be converted to UTC
 		timestep: String describing the time step of the time span.
 					The string is constructed as an integer or float, followed by a time unit:
 					(d)ays, (H)ours, (M)inutes, (S)econds, (mS) milliseconds, (uS) microseconds
@@ -40,9 +42,11 @@ class TimeSpan(object):
 		------
 		ValueError
 		"""
-		# convert and strip timezone info
+		# convert and/or add timezone info
 		if t0.tzinfo is not None:
-			t0 = t0.astimezone(dt.timezone.utc).replace(tzinfo=None)
+			t0 = t0.astimezone(dt.timezone.utc)
+		else:
+			t0 = t0.replace(tzinfo=dt.timezone.utc)
 
 		self.start = t0
 		self.time_step = self._parseTimestep(timestep)
@@ -74,7 +78,8 @@ class TimeSpan(object):
 						format(self.start, self.end, self.time_step.total_seconds()))
 
 
-		self._timearr = np.arange(self.start, self.end+self.time_step, self.time_step).astype(dt.datetime)
+		self._timearr = np.arange(self.start.replace(tzinfo=None), self.end.replace(tzinfo=None)+self.time_step, self.time_step).astype(dt.datetime)
+		self._timearr = np.vectorize(lambda x: x.replace(tzinfo=dt.timezone.utc))(self._timearr)
 		self._skyfield_timespan = load.timescale()
 
 
@@ -191,6 +196,11 @@ class TimeSpan(object):
 		datetime, int
 			Closest datetime in TimeSpan, index of closest date in TimeSpan
 		"""
+		# convert and/or add timezone info
+		if t_search.tzinfo is not None:
+			t_search = t_search.astimezone(dt.timezone.utc)
+		else:
+			t_search = t_search.replace(tzinfo=dt.timezone.utc)
 		diff = self._timearr - t_search
 		out = np.abs(np.vectorize(lambda x: x.total_seconds())(diff))
 		res_index = int(np.argmin(out))
