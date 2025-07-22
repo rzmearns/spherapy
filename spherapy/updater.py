@@ -2,6 +2,7 @@ import spherapy
 import spherapy.util.spacetrack as spacetrack
 import spherapy.util.spacetrack as celestrak
 import pickle
+import pathlib
 
 def updateTLEs(sat_id_list: list[int]) -> list[str]:
 
@@ -12,7 +13,7 @@ def updateTLEs(sat_id_list: list[int]) -> list[str]:
 
 	return modified_list
 
-def getTLEFilePaths(sat_id_list:list[int]) -> list[str]:
+def getTLEFilePaths(sat_id_list:list[int]) -> list[pathlib.Path]:
 	if spacetrack.doCredentialsExist():
 		return [ spacetrack.getTLEFilePath(sat_id) for sat_id in sat_id_list ]
 	else:

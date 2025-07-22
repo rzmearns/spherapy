@@ -1,6 +1,7 @@
 import spherapy
 import spacetrack
 import requests
+import pathlib
 
 MAX_RETRIES=3
 
@@ -16,9 +17,9 @@ def updateTLEs(sat_id_list:list[int], user:str=None, passwd:str=None) -> list[in
 		if ii == MAX_RETRIES-1:
 			raise ValueError(f'Could not fetch celestrak information for sat_id: {sat_id}')
 		
-		fname = getTLEFilePath(sat_id)
+		tle_file = getTLEFilePath(sat_id)
 		dat_list = r.text.split('\r\n')
-		with open(fname, 'w') as fp:
+		with open(tle_file, 'w') as fp:
 			fp.write(f'0 {dat_list[0].rstrip()}\n')
 			fp.write(f'{dat_list[1].rstrip()}\n')
 			fp.write(f'{dat_list[2].rstrip()}')
@@ -26,5 +27,5 @@ def updateTLEs(sat_id_list:list[int], user:str=None, passwd:str=None) -> list[in
 		
 	return modified_list
 
-def getTLEFilePath(sat_id:int) -> str:
-	return f'{spherapy.tle_path.absolute()}/{sat_id}.temptle'
+def getTLEFilePath(sat_id:int) -> pathlib.Path:
+	return spherapy.tle_dir.joinpath(f'{sat_id}.temptle')
