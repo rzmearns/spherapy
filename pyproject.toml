@@ -51,7 +51,6 @@ dev = [
 spherapy-create-credentials = "spherapy.scripts:create_credentials"
 
 [tool.setuptools]
-py-modules = ["spherapy"]
 package-dir = {"" = "spherapy"}
 # packages = ["spherapy", "spherapy.util", "spherapy.scripts"]
 
