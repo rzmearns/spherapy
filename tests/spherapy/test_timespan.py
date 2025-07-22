@@ -10,15 +10,14 @@ import logging
 logging.disable(logging.CRITICAL)
 
 ## Custom checker
-def checkHasattr(a:object, name:str):
+def checkHasattr(a:object, name:str) -> bool:
 	__tracebackhide__ = True
 	if hasattr(a, name):
 		return True
-	else:
-		check.fail(f"check {hasattr({a},{name})} == 4")
-		return False
+	check.fail(f"check {hasattr({a},{name})} == 4")
+	return False
 
-class TestTimeSpan():
+class TestTimeSpan:
 	'''
 	Unit testing for the methods of the TimeSpan class
 	'''
@@ -91,7 +90,6 @@ class TestTimeSpan():
 
 	def test_nonIntegerSpans(self):
 		birthday = dt.datetime(1996, 9, 10)
-		t0 = dt.datetime(2000,1,1,12,4,5)
 		t1 = dt.datetime(2016, 12, 30, 0, 0, 1)
 
 		non_int_day_span = TimeSpan(birthday, '1.5d', '7d')
@@ -131,10 +129,10 @@ class TestTimeSpan():
 			TimeSpan(t0, '1k', '1d')
 			# Test incorrect period unit
 			TimeSpan(t0, '1d', '1j')
-		
+
 		# Test non integer value of timestep
 		check.equal(len(TimeSpan(t0, '1.5M', '1H')), 41)
-		
+
 		# Test non integer value of period
 		check.equal(len(TimeSpan(t0, '1M', '1.5H')), 91)
 
@@ -156,17 +154,11 @@ class TestTimeSpan():
 	def test_conversions(self):
 
 		birthday = dt.datetime(1996, 9, 10, tzinfo=dt.timezone.utc)
-		t0 = dt.datetime(2000,1,1,12,4,5)
 
 		first_week = TimeSpan(birthday, '1d', '7d')
-		first_min = TimeSpan(birthday, '1S', '1M')
 
 		dt_week = first_week.asDatetime()
 		astropy_week = first_week.asAstropy()
-
-		fractional_min = TimeSpan(t0,'1S','1.5M')
-		first_year = TimeSpan(birthday, '1d', '365d')
-		first_decade = TimeSpan(birthday, '365d','3650d')
 
 		check.equal(len(dt_week), len(astropy_week))
 		# Assert they are of the correct types (dt/astropy.Time)
@@ -210,7 +202,7 @@ class TestTimeSpan():
 		# Test where there's a tie: ensure it picks the earlier date
 		res_time, res_index = timespan.getClosest(t0 + half_second)
 		check.equal(res_index, 0)
-		
+
 	def test_timeZones(self):
 		"""
 		Tests to see that the initialisation process handles time zonescorrectly
@@ -248,7 +240,7 @@ class TestTimeSpan():
 													np.zeros(len(timespan)))
 		np.testing.assert_allclose(np.vectorize(lambda x: x.total_seconds())(timespan.asDatetime() - timespan_2130.asDatetime()),
 													np.zeros(len(timespan)))
-	
+
 
 		# all same wall time
 		t0 = dt.datetime(2008, 6, 5, 2, 4, 25, tzinfo=dt.timezone.utc)

@@ -1,8 +1,6 @@
-from astropy.utils.exceptions import AstropyWarning
 import pytest
 from pytest_check import check
 import pathlib
-import os
 import numpy as np
 from spherapy import orbit
 from spherapy import timespan
@@ -15,7 +13,7 @@ import datetime as dt
 import logging
 logging.disable(logging.CRITICAL)
 
-class TestOrbit():
+class TestOrbit:
 	'''
 	Unit testing for the methods of the Orbit class
 	'''
@@ -37,10 +35,10 @@ class TestOrbit():
 		cls.t = timespan.TimeSpan(cls.t0, '1S', '2M')
 		cls.t02 = dt.datetime(2021, 11, 23, 0, 0, 1)
 		cls.t1 = timespan.TimeSpan(cls.t02, '1S', '2M')
-		cls.pos = np.tile(np.linspace(7200,8000,len(cls.t),dtype=np.float_),(3,1)).T
+		cls.pos = np.tile(np.linspace(7200,8000,len(cls.t),dtype=np.float64),(3,1)).T
 
 		# From multiple TLEs
-		ISS_satcat_id = 25544
+		ISS_satcat_id = 25544 #noqa: N806
 		cls.ISS_tle_path = updater.getTLEFilePaths([ISS_satcat_id])[0]
 		cls.o_tle = orbit.Orbit.fromTLE(cls.t, pathlib.Path(cls.ISS_tle_path))
 		cls.o_tle_astro = orbit.Orbit.fromTLE(cls.t1, pathlib.Path(cls.ISS_tle_path), astrobodies=True)
@@ -535,20 +533,20 @@ class TestOrbit():
 		post_end_t = timespan.TimeSpan(dt.datetime(2005,6,1),'365d','34310d')
 
 		with check.raises(exceptions.OutOfRange):
-			o_prior_start_safe_tle = orbit.Orbit.fromTLE(prior_start_t, pathlib.Path(self.ISS_tle_path))
-			o_post_start_safe_tle = orbit.Orbit.fromTLE(post_start_t, pathlib.Path(self.ISS_tle_path))
-			o_post_end_safe_tle = orbit.Orbit.fromTLE(post_end_t, pathlib.Path(self.ISS_tle_path))
+			orbit.Orbit.fromTLE(prior_start_t, pathlib.Path(self.ISS_tle_path))
+			orbit.Orbit.fromTLE(post_start_t, pathlib.Path(self.ISS_tle_path))
+			orbit.Orbit.fromTLE(post_end_t, pathlib.Path(self.ISS_tle_path))
 
-		o_prior_start_unsafe_tle = orbit.Orbit.fromTLE(prior_start_t, pathlib.Path(self.ISS_tle_path), unsafe=True)
-		o_post_start_unsafe_tle = orbit.Orbit.fromTLE(post_start_t, pathlib.Path(self.ISS_tle_path), unsafe=True)
-		o_post_end_unsafe_tle = orbit.Orbit.fromTLE(post_end_t, pathlib.Path(self.ISS_tle_path), unsafe=True)
+		orbit.Orbit.fromTLE(prior_start_t, pathlib.Path(self.ISS_tle_path), unsafe=True)
+		orbit.Orbit.fromTLE(post_start_t, pathlib.Path(self.ISS_tle_path), unsafe=True)
+		orbit.Orbit.fromTLE(post_end_t, pathlib.Path(self.ISS_tle_path), unsafe=True)
 
 		with check.raises(exceptions.OutOfRange):
-			o_safe_ftle = orbit.Orbit.fromPropagatedOrbitalParam(self.t, a=(6378 - 600), ecc=0, inc=45, raan=0, argp=0, mean_nu=0)
-			o_safe_analytical = orbit.Orbit.fromPropagatedOrbitalParam(self.t, a=(6378 - 600), ecc=0, inc=45, raan=0, argp=0, mean_nu=0)
+			orbit.Orbit.fromPropagatedOrbitalParam(self.t, a=(6378 - 600), ecc=0, inc=45, raan=0, argp=0, mean_nu=0)
+			orbit.Orbit.fromPropagatedOrbitalParam(self.t, a=(6378 - 600), ecc=0, inc=45, raan=0, argp=0, mean_nu=0)
 
-		o_unsafe_ftle = orbit.Orbit.fromPropagatedOrbitalParam(self.t, a=(6378 - 600), ecc=0, inc=45, raan=0, argp=0, mean_nu=0, unsafe=True)
-		o_unsafe_analytical = orbit.Orbit.fromPropagatedOrbitalParam(self.t, a=(6378 - 600), ecc=0, inc=45, raan=0, argp=0, mean_nu=0, unsafe=True)
+		orbit.Orbit.fromPropagatedOrbitalParam(self.t, a=(6378 - 600), ecc=0, inc=45, raan=0, argp=0, mean_nu=0, unsafe=True)
+		orbit.Orbit.fromPropagatedOrbitalParam(self.t, a=(6378 - 600), ecc=0, inc=45, raan=0, argp=0, mean_nu=0, unsafe=True)
 
 	def test_analyticalValidity(self):
 		'''
