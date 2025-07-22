@@ -12,13 +12,14 @@ logger = logging.getLogger(__name__)
 
 class TimeSpan(object):
 
-	def __init__(self, t0, timestep='1S', timeperiod='10S'):
+	def __init__(self, t0:dt.datetime, timestep:str='1S', timeperiod:str='10S'):
 		"""Creates a series of timestamps in UTC.
 		Difference between each timestamp = timestep
-		Total duration = integer number of timesteps closest to timeperiod
+		Total duration = greatest integer number of timesteps less than timeperiod
 			If timeperiod is an integer multiple of timestep,
 			then TimeSpan[-1] - TimeSpan[0] = timeperiod
 			If timeperiod is NOT an integer multiple of timestep,
+			then TimeSpan[-1] = int(timeperiod/timestep) (Note: int cast, not round)
 
 		Does not account for Leap seconds, similar to all Posix compliant UTC based time
 			representations. see: https://numpy.org/doc/stable/reference/arrays.datetime.html#datetime64-shortcomings
@@ -167,13 +168,10 @@ class TimeSpan(object):
 		else:
 			raise IndexError
 
-	def asText(self, *args):
-		if len(args) == 1 and isinstance(args[0], int):
-			return self._timearr[args[0]].strftime("%Y-%m-%d %H:%M:%S")
-		else:
-			raise IndexError
+	def asText(self, idx:int) -> str:
+		return self._timearr[idx].strftime("%Y-%m-%d %H:%M:%S")
 
-	def secondsSinceStart(self):
+	def secondsSinceStart(self) -> int:
 		'''
 		Return ndarray with the seconds of all timesteps since the beginning.
 		'''
@@ -183,13 +181,14 @@ class TimeSpan(object):
 		usecs = np.vectorize(lambda x: x.microseconds)(diff)
 		return days * 86400 + secs + usecs * 1e-6
 
-	def getClosest(self, t_search):
+	def getClosest(self, t_search:dt.datetime):
 		"""Find the closest time in a TimeSpan
 				
 		Parameters
 		----------
-		t_search : {datetime}
-			time to find
+		t_search : datetime to search for in TimeSpan
+				If timezone naive, assumed to be in UTC
+				If timezone aware, will be converted to UTCtime to find
 		
 		Returns
 		-------
