@@ -8,8 +8,6 @@ service_name = "spherapy"
 service_author = "MSL"
 version = "0.0.2"
 
-print(f'{version=}')
-
 config_dir_str = os.getenv('SPHERAPY_CONFIG_DIR')
 if config_dir_str is None:
 	use_config_file = False
