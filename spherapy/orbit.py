@@ -62,7 +62,7 @@ class OrbitAttrDict(TypedDict):
 	raan: None|np.ndarray[tuple[int], np.dtype[np.float_]]
 	argp: None|np.ndarray[tuple[int], np.dtype[np.float_]]
 
-def createEmptyOrbitAttrDict() -> OrbitAttrDict:
+def _createEmptyOrbitAttrDict() -> OrbitAttrDict:
 	return OrbitAttrDict({
 	'name': None,
 	'satcat_id':None,
@@ -129,7 +129,7 @@ def genericValidator(obj:Any, check_type:Any) -> bool:
 			return True
 	return False
 
-class Orbit(object):
+class Orbit():
 	'''
 	Contains timestepped array of orbital position and velocity data for a satellite, coordinate system depending on the central body.
 	Contains timestepped array of sun position.
@@ -254,7 +254,7 @@ class Orbit(object):
 		-------
 		satplot.Orbit
 		"""
-		attr_dct = createEmptyOrbitAttrDict()
+		attr_dct = _createEmptyOrbitAttrDict()
 		if len(positions) != len(timespan):
 			raise ValueError(f'Number of supplied positions does not match timespan length: {len(positions)} =/= {len(timespan)}')
 
@@ -306,7 +306,7 @@ class Orbit(object):
 			if not unsafe:
 				raise exceptions.OutOfRange("Timespan ends after provided TLEs (+14 days)")
 
-		attr_dct = createEmptyOrbitAttrDict()
+		attr_dct = _createEmptyOrbitAttrDict()
 
 		closest_tle_epochs = _findClosestEpochIndices(np.asarray(tle_dates), timespan[:])
 
@@ -448,7 +448,7 @@ class Orbit(object):
 			logger.error("Mean anomaly, {}, is out of range, should be 0 < mean_nu < 360".format(inc))
 			raise exceptions.OutOfRange("Mean anomaly, {}, is out of range, should be 0 < mean_nu < 360".format(inc))
 
-		attr_dct = createEmptyOrbitAttrDict()
+		attr_dct = _createEmptyOrbitAttrDict()
 
 		skyfld_ts = load.timescale(builtin=True)
 
@@ -571,7 +571,7 @@ class Orbit(object):
 			logger.error("Mean anomaly, {}, is out of range, should be 0 < mean_nu < 360".format(inc))
 			raise exceptions.OutOfRange("Mean anomaly, {}, is out of range, should be 0 < mean_nu < 360".format(inc))
 
-		attr_dct = createEmptyOrbitAttrDict()
+		attr_dct = _createEmptyOrbitAttrDict()
 
 		logger.info("Creating analytical orbit")
 		orb = hapsiraOrbit.from_classical(central_body,
@@ -619,7 +619,7 @@ class Orbit(object):
 		creates an empty orbit with the motionless at the origin and the sun at +z
 		useful for testing where an orbit is needed independent of any real ephemeris data
 		'''
-		attr_dct = createEmptyOrbitAttrDict()
+		attr_dct = _createEmptyOrbitAttrDict()
 		attr_dct['timespan'] = timespan
 		attr_dct['name'] = 'dummy_const_pos'
 		attr_dct['pos'] = np.full((len(timespan), 3), pos)
