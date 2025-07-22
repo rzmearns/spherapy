@@ -51,10 +51,7 @@ dev = [
 spam-cli = "spherapy.scripts:create_credentials"
 
 [tool.setuptools]
-packages = ["spherapy"]
-
-[tool.setuptools.packages.find]
-where = ["spherapy/"]
+packages = ["spherapy", "spherapy.util", "spherapy.scripts"]
 
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.
