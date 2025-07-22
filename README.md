@@ -29,7 +29,7 @@ TLE_paths = spherapy.updater.getTLEFilePaths([58468])
 ```
 - set up a timespan
 ```python
-t = spherapy.timespan.TimeSpan(dt.datetime(2024,10,15,0,0,1),'1S','90M')
+t = spherapy.timespan.TimeSpan(datetime.datetime(2024,10,15,0,0,1),'1S','90M')
 ```
 - construct an orbit
 	- from a TLE (good practice to update the TLE with the most recent)
