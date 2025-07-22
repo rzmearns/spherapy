@@ -1,10 +1,17 @@
 import keyring
+import keyring.errors
 import getpass
 
 # used to store/fetch the username in keyring (abuse of API)
 USERNAME_KEY = "spherapy_username"
 # program name
 service_id = "spherapy"
+
+try:
+	keyring.get_keyring()
+	method = 'keyring'
+except keyring.errors.NoKeyringError:
+	method = 'fallback'
 
 def fetchCredentials() -> dict[str,str|None]:
 	username = _fetchUser()
@@ -14,11 +21,17 @@ def fetchCredentials() -> dict[str,str|None]:
 	return {'user':username, 'passwd':password}
 
 def _fetchUser() -> str|None:
-	username = keyring.get_password(service_id, USERNAME_KEY)
+	if method=='keyring':
+		username = keyring.get_password(service_id, USERNAME_KEY)
+	else:
+		username = None
 	return username
 
 def _fetchPass(username:str) -> str|None:
-	password = keyring.get_password(service_id, username)
+	if method=='keyring':
+		password = keyring.get_password(service_id, username)
+	else:
+		password = None
 	return password
 
 def storeCredentials(user:None|str=None, passwd:None|str=None) -> bool:
