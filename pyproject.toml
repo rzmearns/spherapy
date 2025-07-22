@@ -104,7 +104,6 @@ skip-magic-trailing-comma = true
 select = ["ANN",	 	# flake8-annotations
 			# "ERA",	 	# eradicate (commented out code) (unfortunatlely lots of false positives)
 			"S",	 	# flake8-bandit
-			"FBT",	 	# flake8-boolean-trap
 			"B",	 	# flake8-bugbear
 			"A",	 	# flake8-builtins
 			"C4",	 	# flake8-comprehensions
@@ -141,8 +140,12 @@ ignore = [
 			"E266", # too many leading '#' for block comment
 			"W191", # indentation contains tabs
 			# "W504", # line break after binary operator
-			"FBT002", # Boolean default value in function definition (from Flake8 Boolean Trap)
 			"N802", # function name should be lowercase (mixedCase in this codebase)
+			"D206", # docstrings should be indented with spaces (not in this codebase)
+			"TRY003", # avoid specifying long messages outside exception class
+		 "TD002", # missing author in TODO
+		 "TD003", # missing issue link in TODO
+		 "PLR0915", # too many statements (max 50)
 			]
 
 task-tags = ["TODO"]
@@ -164,8 +167,6 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 												 "PLR",
 												 "E",
 												 "SLF",
-												 "TD002", # missing author in TODO
-												 "TD003", # missing issue link in TODO
 												 ]
 
 [tool.ruff.lint.flake8-annotations]
