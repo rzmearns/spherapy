@@ -1,29 +1,27 @@
 ## Installation
-1. clone this repo into your desired installation directory.
-2. inside your virtual envrionment run: 
+- install to use the package:
+  1. install from git
 ```bash
-pip install -e <path to spherapy repo>
+pip install git+ssh://git@gitlab.unimelb.edu.au/msl/libraries/spherapy.git
 ```
-### Update
-pull down the main branch. 
-
-Note that this may overwrite your config file. Save a copy beforehand.
-
+  2. configure. see [Configuration](#configuration)
+- install to develop the package:
+  1. clone the repo
+  2. install as editable
+```bash
+pip install --editable .[dev]
+```
+  3. contribute, see [Contributing](https://gitlab.unimelb.edu.au/msl/libraries/spherapy/-/blob/main/CONTRIBUTING.md)
+ 
 ## Usage
-### As a submodule
-- To be investigated
-
-### As a stand alone import
-- ensure the [configuration file](spherapy.conf) has been updated with any desired paths
-- ensure that spacetrack credentials are saved in the relevant credential file
-	- otherwise celestrak will be used as a fallback, but historical TLEs will be unavailable
+- ensure spherapy has been configured, see [Configuration](#configuration)
 - import the spherapy package
 ```python
 import spherapy.updater
 import spherapy.timespan
 import spherapy.orbit
 ```
-- if using real satellites; update the desired TLEs
+- if using real satellites; update the desired TLEs, or use those supplied with the package (will be out of date).
 	- TLE id's can be found using [NORAD's CelesTrak catalogue search](https://celestrak.org/satcat/search.php)
 ```python
 updated_TLEs = spherapy.updater.updateTLEs([58468])
@@ -38,35 +36,92 @@ t = spherapy.timespan.TimeSpan(dt.datetime(2024,10,15,0,0,1),'1S','90M')
 ```python
 o = spherapy.orbit.Orbit.fromTLE(t, TLE_paths[0])
 ```  
--	- from orbital parameters
+-	from orbital parameters
 ```python
-o = spherapy.orbit.Orbit.fromAnalyticalOrbitalParam(timespan, body='Earth', a=6978, ecc=0, inc=0, raan=0, argp=0, mean_nu=0, name='Analytical', astrobodies=True)
+o = spherapy.orbit.Orbit.fromAnalyticalOrbitalParam(timespan, body='Earth',
+																										 a=6978,
+																										 ecc=0,
+																										 inc=0,
+																										 raan=0,
+																										 argp=0,
+																										 mean_nu=0,
+																										 name='My Analytical Orbit',
+																										 astrobodies=True)
 ```  
 
 ## SpaceTrack Credentials
-In order to calculate the position of a satellite at any given time, Satplot requires [TLE information](https://en.wikipedia.org/wiki/Two-line_element_set) for each satellite which is accurate for the given time period.  
+In order to calculate the position of a satellite at any given time, spherapy requires [TLE information](https://en.wikipedia.org/wiki/Two-line_element_set) for each satellite which is accurate for the given time period (or 'epoch').  
 TLE data can be obtained from either [Celestrak](https://celestrak.org/) or [Spacetrack](https://www.space-track.org/). 
-Celestrak holds only the most recent TLE data for each satellite, while Spacetrack will provide historical TLE data. Satplot will fall back to using Celestrak if it cannot authenticate access to Spacetrack.  
+Celestrak holds only the most recent TLE data for each satellite, while Spacetrack will provide historical TLE data. spherapy will fall back to using Celestrak if it cannot authenticate access to Spacetrack.  
 In order to use Spacetrack, you must provide your [Spacetrack credentials](https://www.space-track.org/auth/createAccount) to spherapy.
 
-- use `spherapy.updater.createCredentials()` to create credentials in the configured location, this will overwrite any existing credentials
-
 ## Configuration
-The configuration for spherapy is set in an `.ini` style configuration file; `spherapy.conf`.
-- All paths should be relative to the spherapy root directory.
-- DO NOT EDIT the DEFAULT section of the file
+Configuration for spherapy can either use a supplied configuration file, or the system's user data and config directories (default).  
+To use a config file, set the environment variable 'SPHERAPY_CONFIG_DIR' to the location of the `spherapy.conf` file.
+
+### Directories
+If `SPHERAPY_CONFIG_DIR` is not set or `TLE_path` is left empty in `spherapy.conf`, the spherapy default directories will be used:
+
+#### Linux
+- TLE data dir:
+``` bash
+/home/{username}/.local/share/spherapy/TLEs
+```
+- config dir:
+``` bash
+/home/{username}/.config/spherapy/spherapy/{spherapy_version}/
+```
+
+#### OSX
+- TLE data dir:
+``` bash
+/Users/{username}/Library/Application Support/spherapy/TLEs
+```
+- config dir:
+``` bash
+/Users/{username}/Library/Application Support/spherapy/{spherapy_version}/
+```
+
+#### Windows
+- TLE data dir:
+``` bash
+'C:\\Users\\{username}\\AppData\\Local\\spherapy\\TLEs'
+```
+- config dir:
+``` bash
+'C:\\Users\\{username}\\AppData\\Local\\spherapy\\{spherapy_version}'
+```
+
+### Passwords
+By default spherapy will use the system keyring to store the Spacetrack username and credentials (see [SpaceTrack Credentials](#spacetrack-credentials))  
+If a config file is supplied, the credentials in the file will be used.
+
+Credentials can be added to the keyring by running
+```
+python spherapy create_credentials
+```
+
+### Configration File Format
+The configuration file should have the following format:
+```ini
+[credentials]
+SpacetrackUser = None
+SpacetrackPasswd = None
+
+[paths]
+# relative paths are assumed to be relative to the location of this file
+# do not quote path
+TLE_path =
+```
 
 ## Data Storage
 - TLEs
-	- TLEs will be stored in the data directory (specified in the [configuration file](spherapy.conf)), with a single file for each satellite ID.
+	- TLEs will be stored in the data directory, with a single file for each satellite ID.
 	 `{sat_id}.tle`, containing all historical TLEs for that satellite.
 	- If celestrak is used instead, the file will be saved as a temporary file `{sat_id}.temptle`, which will be overwritten on each fetch from celestrak.
-- Orbits
-	- The orbit object is currently not serialisable, but this is a high priority area of work to prevent needing to propagate large data sets each time it is run (investigate diskcache package?)
 
 ## Timespan Object
 The timespan object is the base time class of spherapy.
-
 
 ## Orbit Object
 Please see [the orbit documentation](docs/orbit.md)

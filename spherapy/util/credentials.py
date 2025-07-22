@@ -1,20 +1,24 @@
+import spherapy
+import configparser
 import keyring
 import keyring.errors
 import getpass
 
 # used to store/fetch the username in keyring (abuse of API)
 USERNAME_KEY = "spherapy_username"
-# program name
-service_id = "spherapy"
 
-try:
-	# TODO: better way to check if keyring exists is needed
-	keyring.get_password(service_id,'')
-	method = 'keyring'
-except keyring.errors.NoKeyringError:
-	method = 'fallback'
+def fetchConfigCredentials(config:configparser.ConfigParser) -> dict[str, str|None]:
+	username = config['credentials'].get('SpacetrackUser')
+	if username == 'None':
+		username = None
 
-def fetchCredentials() -> dict[str,str|None]:
+	password = config['credentials'].get('SpacetrackPasswd')
+	if password == 'None':
+		password = None
+
+	return {'user':username, 'passwd':password}
+
+def fetchKeyringCredentials() -> dict[str,str|None]:
 	username = _fetchUser()
 	if username is None:
 		return {'user':None, 'passwd':None}
@@ -22,32 +26,28 @@ def fetchCredentials() -> dict[str,str|None]:
 	return {'user':username, 'passwd':password}
 
 def _fetchUser() -> str|None:
-	if method=='keyring':
-		username = keyring.get_password(service_id, USERNAME_KEY)
-	elif method=='fallback':
-		username = None
-	else:
-		username = None
+	try:
+		username = keyring.get_password(spherapy.service_name, USERNAME_KEY)
+	except keyring.errors.NoKeyringError:
+		raise ValueError('No Keyring exists on this machine: did you forget to set env variable SPHERAPY_CONFIG_DIR')
 	return username
 
 def _fetchPass(username:str) -> str|None:
-	if method=='keyring':
-		password = keyring.get_password(service_id, username)
-	elif method=='fallback':
-		password = None
-	else:
-		password = None
+	try:
+		password = keyring.get_password(spherapy.service_name, username)
+	except keyring.errors.NoKeyringError:
+		raise ValueError('No Keyring exists on this machine: did you forget to set env variable SPHERAPY_CONFIG_DIR')
 	return password
 
 def storeCredentials(user:None|str=None, passwd:None|str=None) -> bool:
 	if user is not None:
-		keyring.set_password(service_id, USERNAME_KEY, user)
+		keyring.set_password(spherapy.service_name, USERNAME_KEY, user)
 	else:
 		user = _fetchUser()
 		if user is None:
 			raise KeyError("Can't set a Spacetrack password without a username: no existing username")
 	if passwd is not None:
-		keyring.set_password(service_id, user, passwd)
+		keyring.set_password(spherapy.service_name, user, passwd)
 
 	# check stored credentials match input
 	stored_user = _fetchUser()
