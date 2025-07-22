@@ -12,6 +12,8 @@ dependencies = [
 		"progressbar2==4.4.1",
 		"hapsira==0.18.0",
 		"spacetrack==1.2.0",
+		"keyring>=25.0.0",
+		"platformdirs==4.3.8",
 	]
 
 requires-python = ">=3.10"
@@ -45,8 +47,11 @@ dev = [
 # Repository = ""
 # Issues = ""
 
-[tool.setuptools]
-packages = ["spherapy"]
+[project.scripts]
+spherapy-create-credentials = "spherapy.scripts:create_credentials"
+
+[tool.setuptools.packages.find]
+exclude = ["data"]
 
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.

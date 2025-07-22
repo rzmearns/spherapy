@@ -1,3 +1,4 @@
+import pathlib
 import spacetrack as sp
 import spherapy
 import datetime as dt
@@ -51,7 +52,7 @@ class TLEGetter:
 		return self.modified_ids
 
 	def checkTLEFileExists(self, sat_id:int) -> bool:
-		return os.path.exists(getTLEFilePath(sat_id))
+		return getTLEFilePath(sat_id).exists()
 
 	def fetchAll(self, sat_id:int) -> str|None:
 		retries = 0
@@ -137,8 +138,8 @@ def updateTLEs(sat_id_list:list[int], user:str=None, passwd:str=None) -> list[in
 	
 	return g.getModifiedIDs()
 
-def getTLEFilePath(sat_id:int) -> str:
-	return f'{spherapy.tle_path.absolute()}/{sat_id}.tle'
+def getTLEFilePath(sat_id:int) -> pathlib.Path:
+	return spherapy.tle_dir.joinpath(f'{sat_id}.tle')
 
 def doCredentialsExist() -> bool:
 	user_stored = False
