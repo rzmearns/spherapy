@@ -1,15 +1,20 @@
 ## Installation
-This package can be installed via pip directly from the git repository via:
+1. clone this repo into your desired installation directory.
+2. inside your virtual envrionment run: 
 ```bash
-pip install git+ssh://git@gitlab.unimelb.edu.au/msl/libraries/spherapy.git
+pip install -e <path to spherapy repo>
 ```
+### Update
+pull down the main branch. 
+
+Note that this may overwrite your config file. Save a copy beforehand.
 
 ## Usage
 ### As a submodule
 - To be investigated
 
 ### As a stand alone import
-- ensure the [configuration file](spheraphy.conf) has been updated with any desired paths
+- ensure the [configuration file](spherapy.conf) has been updated with any desired paths
 - ensure that spacetrack credentials are saved in the relevant credential file
 	- otherwise celestrak will be used as a fallback, but historical TLEs will be unavailable
 - import the spherapy package
@@ -47,20 +52,20 @@ In order to use Spacetrack, you must provide your [Spacetrack credentials](https
 - use `spherapy.updater.createCredentials()` to create credentials in the configured location, this will overwrite any existing credentials
 
 ## Configuration
-The configuration for spheraphy is set in an `.ini` style configuration file; `spherapy.conf`.
+The configuration for spherapy is set in an `.ini` style configuration file; `spherapy.conf`.
 - All paths should be relative to the spherapy root directory.
 - DO NOT EDIT the DEFAULT section of the file
 
 ## Data Storage
 - TLEs
-	- TLEs will be stored in the data directory (specified in the [configuration file](spheraphy.conf)), with a single file for each satellite ID.
+	- TLEs will be stored in the data directory (specified in the [configuration file](spherapy.conf)), with a single file for each satellite ID.
 	 `{sat_id}.tle`, containing all historical TLEs for that satellite.
 	- If celestrak is used instead, the file will be saved as a temporary file `{sat_id}.temptle`, which will be overwritten on each fetch from celestrak.
 - Orbits
 	- The orbit object is currently not serialisable, but this is a high priority area of work to prevent needing to propagate large data sets each time it is run (investigate diskcache package?)
 
 ## Timespan Object
-The timespan object is the base time class of spheraphy.
+The timespan object is the base time class of spherapy.
 
 
 ## Orbit Object
