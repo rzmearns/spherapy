@@ -33,6 +33,7 @@ keywords = ['satellite', 'sgp', 'space', 'orbit']
 dev = [
 	"line-profiler==4.2.0",
 	"pytest==8.4.1",
+	"pytest-check==2.5.3",
 	"mypy==1.17.0",
 	"ruff==0.12.4",
 	"pre-commit==4.2.0",
