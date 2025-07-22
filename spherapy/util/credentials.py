@@ -8,6 +8,7 @@ USERNAME_KEY = "spherapy_username"
 service_id = "spherapy"
 
 try:
+	# TODO: better way to check if keyring exists is needed
 	keyring.get_password(service_id,'')
 	method = 'keyring'
 except keyring.errors.NoKeyringError:
@@ -23,6 +24,8 @@ def fetchCredentials() -> dict[str,str|None]:
 def _fetchUser() -> str|None:
 	if method=='keyring':
 		username = keyring.get_password(service_id, USERNAME_KEY)
+	elif method=='fallback':
+		username = None
 	else:
 		username = None
 	return username
@@ -30,6 +33,8 @@ def _fetchUser() -> str|None:
 def _fetchPass(username:str) -> str|None:
 	if method=='keyring':
 		password = keyring.get_password(service_id, username)
+	elif method=='fallback':
+		password = None
 	else:
 		password = None
 	return password
@@ -58,6 +63,6 @@ def storeCredentials(user:None|str=None, passwd:None|str=None) -> bool:
 def createCredentials():
 	user = input('Please enter your spacetrack username:')
 	passwd = getpass.getpass(prompt='Please enter your spacetrack password:')
-	print(f"These credentials are being saved in your system keyring")
+	print("These credentials are being saved in your system keyring")
 	if not storeCredentials(user=user, passwd=passwd):
-		print(f"Could not save credentials in system keyring")
+		print("Could not save credentials in system keyring")
