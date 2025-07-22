@@ -8,7 +8,7 @@ USERNAME_KEY = "spherapy_username"
 service_id = "spherapy"
 
 try:
-	keyring.get_keyring()
+	keyring.get_password(service_id,'')
 	method = 'keyring'
 except keyring.errors.NoKeyringError:
 	method = 'fallback'
