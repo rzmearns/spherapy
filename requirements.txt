@@ -5,3 +5,4 @@ skyfield        == 1.46
 progressbar2    == 4.4.1
 hapsira         == 0.18.0
 spacetrack      == 1.2.0
+pytest-check 	== 2.5.3
