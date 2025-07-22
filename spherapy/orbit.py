@@ -7,7 +7,6 @@ This module provides:
 import datetime as dt
 import logging
 import pathlib
-import pickle
 import types
 import typing
 from typing import TypedDict
@@ -769,12 +768,6 @@ class Orbit:
 			obj.moon_pos = np.full((len(timespan), 3), moon_pos)
 		return obj
 
-	@classmethod
-	def load(cls, file:pathlib.Path) -> 'Orbit':
-		with file.open('rb') as fp:
-			logger.info('Loading orbit file from %s', file)
-			return pickle.load(fp)
-
 	def getPosition(self, search_time:dt.datetime|astropyTime) \
 							-> np.ndarray[tuple[int],np.dtype[np.float64]]:
 		"""Return the position at the specified or closest time.
@@ -835,9 +828,6 @@ class Orbit:
 		sunlit = np.logical_or(sunlit_angsep_truth, sunlit_dist_truth)
 
 		return np.logical_not(sunlit)
-
-	def serialise(self):
-		raise NotImplementedError
 
 
 def _findClosestEpochIndices(target:list[float], values:float) -> list[int]:
