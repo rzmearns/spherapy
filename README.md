@@ -96,9 +96,9 @@ If `SPHERAPY_CONFIG_DIR` is not set or `TLE_path` is left empty in `spherapy.con
 By default spherapy will use the system keyring to store the Spacetrack username and credentials (see [SpaceTrack Credentials](#spacetrack-credentials))  
 If a config file is supplied, the credentials in the file will be used.
 
-Credentials can be added to the keyring by running
+Credentials can be added to the keyring by running the command (in the terminal, not the python shell)
 ```
-python spherapy create_credentials
+spherapy-create-credentials
 ```
 
 ### Configration File Format

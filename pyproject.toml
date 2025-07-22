@@ -48,7 +48,7 @@ dev = [
 # Issues = ""
 
 [project.scripts]
-spam-cli = "spherapy.scripts:create_credentials"
+spherapy-create-credentials = "spherapy.scripts:create_credentials"
 
 [tool.setuptools]
 packages = ["spherapy", "spherapy.util", "spherapy.scripts"]
