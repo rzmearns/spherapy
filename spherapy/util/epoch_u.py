@@ -1,71 +1,61 @@
+"""Utility functions for converting different epochs.
+
+Attributes:
+	GMST_epoch: [description]
+"""
+
 import datetime as dt
-import numpy as np
 
 GMST_epoch = dt.datetime(2000,1,1,12,0,0)
 
-def epoch2datetime(string):
+def epoch2datetime(epoch_str:str) -> dt.datetime:
 	"""Converts a fractional epoch string to a datetime object.
-	
-	[description]
-	
-	Parameters
-	----------
-	string : {str}
-		fractional year epoch
-	
-	Returns
-	-------
-	datetime
-	"""
-	if not isinstance(string, str):
-		string = str(string)
 
-	year = int(string[:2])
-	if year < 50:
+	Args:
+	epoch_str:	fractional year epoch
+
+	Returns:
+		equivalent datetime
+	"""
+	if not isinstance(epoch_str, str):
+		epoch_str = str(epoch_str)
+
+	year = int(epoch_str[:2])
+	if year < 50: 			# noqa: PLR2004
 		year += 2000
 	else:
 		year += 1900
-	
-	fractional_DoY = float(string[2:])
+
+	fractional_day_of_year = float(epoch_str[2:])
 
 	base = dt.datetime(year, 1, 1, tzinfo=dt.timezone.utc)
-	date = base + dt.timedelta(days=fractional_DoY) - dt.timedelta(days=1)
+	return base + dt.timedelta(days=fractional_day_of_year) - dt.timedelta(days=1)
 
-	return date
+def datetime2TLEepoch(date:dt.datetime) -> str:
+	"""Converts a datetime to a TLE epoch string.
 
+	Args:
+		date: Datetime object
 
-def datetime2TLEepoch(date):
-	"""Converts a datetime to a TLE epoch
-	
-	Parameters
-	----------
-	date : {datetime}
-		Datetime object
-	
-	Returns
-	-------
-	str
-		TLE epoch, with fractional seconds
+	Returns:
+		TLE epoch string, with fractional seconds
 	"""
 	tzinfo = date.tzinfo
 	year_str = str(date.year)[-2:]
 	day_str = str(date.timetuple().tm_yday).zfill(3)
-	fraction_str = str((date - dt.datetime(date.year, date.month, date.day, tzinfo=tzinfo)).total_seconds() / dt.timedelta(days=1).total_seconds())[1:]
+	fraction_str = str((date - dt.datetime(date.year, date.month, date.day, tzinfo=tzinfo)).total_seconds() / 	#noqa: E501
+						dt.timedelta(days=1).total_seconds())[1:]
 
 	return year_str + day_str + fraction_str
 
 
-def datetime2sgp4epoch(date):
-	"""Converts a datetime to an sgp4 epoch
-	
-	Parameters
-	----------
-	date : {datetime}
-		Datetime object
-	
-	Returns
-	-------
-	float
+def datetime2sgp4epoch(date:dt.datetime) -> int:
+	"""Converts a datetime to an sgp4 epoch.
+
+	Args:
+		date: Datetime object
+
+	Returns:
 		SGP4 epoch, with fractional seconds
 	"""
 	tzinfo = date.tzinfo
