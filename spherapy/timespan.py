@@ -106,12 +106,12 @@ class TimeSpan:
 		return hash((self.start, self.end, self.time_step))
 
     # Make it callable and return the data for that entry
-	def __call__(self) -> np.ndarray[tuple[int], np.dtype[dt.datetime]]:
+	def __call__(self) -> np.ndarray[tuple[int], np.dtype[np.datetime64]]:
 		"""Returns the internal _timearr when the TimeSpan is called."""
 		return self._timearr
 
 	def __getitem__(self, idx:None|int|np.integer|tuple|list|slice=None) \
-						-> None|dt.datetime|np.ndarray[tuple[int], np.dtype[dt.datetime]]:
+						-> None|dt.datetime|np.ndarray[tuple[int], np.dtype[np.datetime64]]:
 		"""Returns an index or slice of the TimeSpan as an array of datetime objects."""
 		if idx is None:
 			return self._timearr
@@ -168,7 +168,7 @@ class TimeSpan:
 		return astropyTime(self._timearr[idx], scale=scale)
 
 	def asDatetime(self, idx:None|int=None) \
-		-> dt.datetime|np.ndarray[tuple[int], np.dtype[dt.datetime]]:
+		-> dt.datetime|np.ndarray[tuple[int], np.dtype[np.datetime64]]:
 		"""Return ndarray of TimeSpan as datetime objects.
 
 		Args:
@@ -328,7 +328,7 @@ class TimeSpan:
 		self.time_period = self.end - self.start
 
 	@classmethod
-	def fromDatetime(cls, dt_arr:np.ndarray[tuple[int], np.dtype[dt.datetime]],
+	def fromDatetime(cls, dt_arr:np.ndarray[tuple[int], np.dtype[np.datetime64]],
 							timezone:dt.timezone=dt.timezone.utc) -> 'TimeSpan':
 		"""Create a TimeSpan from an array of datetime objects.
 
