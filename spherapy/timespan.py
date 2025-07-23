@@ -139,8 +139,6 @@ class TimeSpan:
 		self_copy = TimeSpan(self.start)
 
 		self_copy.start = self.start
-		self_copy.init_timestep_str = ''
-		self_copy.init_timeperiod_str = ''
 		self_copy.time_step = None
 
 		self_copy.end = other.end
@@ -322,8 +320,6 @@ class TimeSpan:
 		self._timearr = self._timearr[idxs]
 		self.start = self._timearr[0]
 		self.end = self._timearr[-1]
-		self.init_timeperiod_str = None
-		self.init_timestep_str = None
 		self.time_step = None
 		self.time_period = self.end - self.start
 
@@ -347,8 +343,6 @@ class TimeSpan:
 		t._timearr = dt_arr.copy()
 		t.start = start
 		t.end = end
-		t.init_timeperiod_str = None
-		t.init_timestep_str = None
 		t.time_step = None
 		t.time_period = t.end-t.start
 
