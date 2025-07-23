@@ -80,20 +80,3 @@ def calcMeanMotion(a):
 	"""
 
 	return np.sqrt(consts.GM_EARTH / a**3)
-
-def toNPArray(sky_coord):
-	"""Transform an astropy.SkyCoord object into a (3,) numpy array.
-	
-	Parameters
-	----------
-	sky_coord: {SkyCoord}
-		astropy SkyCoord object
-		
-	Returns
-	-------
-	vector: {(3,) numpy array}
-		Cartesian coordinates of sky_coord
-	"""
-	sky_coord.representation_type = 'cartesian'
-	vector = np.array([sky_coord.x.value, sky_coord.y.value, sky_coord.z.value])
-	return vector
