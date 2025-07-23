@@ -123,7 +123,7 @@ class _TLEGetter:
 
 		return sat_id
 
-	def _findLocalLastEpoch(self, sat_id:int) -> tuple[float, float]:
+	def _findLocalLastEpoch(self, sat_id:int) -> tuple[str, float]:
 		"""Find the last TLE epoch in a TLE file."""
 		# get penultimate and ultimate epochs
 		with getTLEFilePath(sat_id).open('r') as fp:
@@ -131,12 +131,12 @@ class _TLEGetter:
 		while lines[-1] == '':
 			lines = lines[:-1]
 		last_epoch_line = lines[-2]
-		last_epoch = float(last_epoch_line.split()[3])
+		last_tle_epoch = last_epoch_line.split()[3]
 
-		last_epoch_datetime = epoch_u.epoch2datetime(last_epoch)
+		last_epoch_datetime = epoch_u.epoch2datetime(last_tle_epoch)
 		delta = dt.datetime.now(tz=dt.timezone.utc) - last_epoch_datetime
 
-		return last_epoch, delta.days
+		return last_tle_epoch, delta.days
 
 	def _calcRequestAllOptions(self, sat_id:int) -> dict[str, str|int]:
 		"""Format spacetrack library request options. Request all TLEs."""
@@ -168,8 +168,8 @@ class _TLEGetter:
 		last_epoch, _ = self._findLocalLastEpoch(sat_id)
 		first_new_idx = None
 		for tle_idx, tle_dict in enumerate(tle_dict_list):
-			epoch = float(tle_dict[1]['fields'][3])
-			if epoch > last_epoch:
+			epoch = tle_dict[1]['fields'][3]
+			if epoch_u.epochLaterThan(epoch, last_epoch):
 				first_new_idx = tle_idx
 				break
 		if first_new_idx is not None:

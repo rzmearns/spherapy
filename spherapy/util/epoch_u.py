@@ -32,6 +32,33 @@ def epoch2datetime(epoch_str: str) -> dt.datetime:
 	base = dt.datetime(year, 1, 1, tzinfo=dt.timezone.utc)
 	return base + dt.timedelta(days=fractional_day_of_year) - dt.timedelta(days=1)
 
+def epochEarlierThan(epoch_a:str, epoch_b:str) -> bool:
+	"""Check if epoch A is earlier than epoch B.
+
+	Args:
+		epoch_a: TLE epoch string A
+		epoch_b: TLE epoch string B
+
+	Returns:
+		True if epoch A is earlier than epoch B
+	"""
+	datetime_a = epoch2datetime(epoch_a)
+	datetime_b = epoch2datetime(epoch_b)
+	return datetime_a < datetime_b
+
+def epochLaterThan(epoch_a:str, epoch_b:str) -> bool:
+	"""Check if epoch A is later than epoch B.
+
+	Args:
+		epoch_a: TLE epoch string A
+		epoch_b: TLE epoch string B
+
+	Returns:
+		True if epoch A is later than epoch B
+	"""
+	datetime_a = epoch2datetime(epoch_a)
+	datetime_b = epoch2datetime(epoch_b)
+	return datetime_a > datetime_b
 
 def datetime2TLEepoch(date: dt.datetime) -> str:
 	"""Converts a datetime to a TLE epoch string.
