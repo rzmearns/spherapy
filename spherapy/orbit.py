@@ -366,15 +366,15 @@ class Orbit:
 		if timespan.start < tle_dates[0] - dt.timedelta(days=14):
 			logger.error("Timespan begins before provided TLEs (+14 days)")
 			if not unsafe:
-				raise exceptions.OutOfRange("Timespan begins before provided TLEs (+14 days)")
+				raise exceptions.OutOfRangeError("Timespan begins before provided TLEs (+14 days)")
 		elif timespan.start > tle_dates[-1] + dt.timedelta(days=14):
 			logger.error("Timespan begins after provided TLEs (+14 days)")
 			if not unsafe:
-				raise exceptions.OutOfRange("Timespan begins after provided TLEs (+14 days)")
+				raise exceptions.OutOfRangeError("Timespan begins after provided TLEs (+14 days)")
 		elif timespan.end > tle_dates[-1] + dt.timedelta(days=14):
 			logger.error("Timespan ends after provided TLEs (+14 days)")
 			if not unsafe:
-				raise exceptions.OutOfRange("Timespan ends after provided TLEs (+14 days)")
+				raise exceptions.OutOfRangeError("Timespan ends after provided TLEs (+14 days)")
 
 		attr_dct = _createEmptyOrbitAttrDict()
 
@@ -515,30 +515,31 @@ class Orbit:
 		if a < consts.R_EARTH + consts.EARTH_MIN_ALT:
 			logger.error("Semimajor axis, %s, is too close to Earth", a)
 			if not unsafe:
-				raise exceptions.OutOfRange(f"Semimajor axis, {a}, is too close to Earth")
+				raise exceptions.OutOfRangeError(f"Semimajor axis, {a}, is too close to Earth")
 
 		if ecc > 1 or ecc < 0:
 			logger.error("Eccentricity, %s, is non circular or eliptical", ecc)
-			raise exceptions.OutOfRange(f"Eccentricity, {ecc}, is non circular or eliptical")
+			raise exceptions.OutOfRangeError(f"Eccentricity, {ecc}, is non circular or eliptical")
 
 		if inc > 180 or inc < -180: 			#noqa: PLR2004
 			logger.error("Inclination, %s, is out of range, should be -180 < inc < 180", inc)
-			raise exceptions.OutOfRange(f"Inclination, {inc}, is out of range, "
+			raise exceptions.OutOfRangeError(f"Inclination, {inc}, is out of range, "
 										f"should be -180 < inc < 180")
 
 		if raan > 360 or raan < 0: 				#noqa: PLR2004
 			logger.error("RAAN, %s, is out of range, should be 0 < inc < 360", raan)
-			raise exceptions.OutOfRange(f"RAAN, {raan}, is out of range, should be 0 < inc < 360")
+			raise exceptions.OutOfRangeError(f"RAAN, {raan}, is out of range, "
+												f"should be 0 < inc < 360")
 
 		if argp > 360 or argp < 0: 				#noqa: PLR2004
 			logger.error("Argument of periapsis, %s, is out of range, "
 						"should be 0 < argp < 360", inc)
-			raise exceptions.OutOfRange(f"Argument of periapsis, {inc}, is out of range, "
+			raise exceptions.OutOfRangeError(f"Argument of periapsis, {inc}, is out of range, "
 										f"should be 0 < argp < 360")
 
 		if mean_nu > 360 or mean_nu < 0: 		#noqa: PLR2004
 			logger.error("Mean anomaly, %s, is out of range, should be 0 < mean_nu < 360", mean_nu)
-			raise exceptions.OutOfRange(f"Mean anomaly, {mean_nu}, is out of range, "
+			raise exceptions.OutOfRangeError(f"Mean anomaly, {mean_nu}, is out of range, "
 										f"should be 0 < mean_nu < 360")
 
 		attr_dct = _createEmptyOrbitAttrDict()
@@ -661,31 +662,32 @@ class Orbit:
 		if a < min_a:
 			logger.error("Semimajor axis, %s, is too close to the central body, {body.upper()}", a)
 			if not unsafe:
-				raise exceptions.OutOfRange(f"Semimajor axis, {a}, is too close "
+				raise exceptions.OutOfRangeError(f"Semimajor axis, {a}, is too close "
 											f"to the central body, {body.upper()}")
 
 		if ecc > 1 or ecc < 0:
 			logger.error("Eccentricity, %s, is non circular or eliptical", ecc)
-			raise exceptions.OutOfRange(f"Eccentricity, {ecc}, is non circular or eliptical")
+			raise exceptions.OutOfRangeError(f"Eccentricity, {ecc}, is non circular or eliptical")
 
 		if inc > 180 or inc < -180: 			#noqa: PLR2004
 			logger.error("Inclination, %s, is out of range, should be -180 < inc < 180", inc)
-			raise exceptions.OutOfRange(f"Inclination, {inc}, is out of range, "
+			raise exceptions.OutOfRangeError(f"Inclination, {inc}, is out of range, "
 										f"should be -180 < inc < 180")
 
 		if raan > 360 or raan < 0: 				#noqa: PLR2004
 			logger.error("RAAN, %s, is out of range, should be 0 < inc < 360", inc)
-			raise exceptions.OutOfRange(f"RAAN, {inc}, is out of range, should be 0 < inc < 360")
+			raise exceptions.OutOfRangeError(f"RAAN, {inc}, is out of range, "
+												f"should be 0 < inc < 360")
 
 		if argp > 360 or argp < 0: 				#noqa: PLR2004
 			logger.error("Argument of periapsis, %s, is out of range, "
 							"should be 0 < argp < 360", raan)
-			raise exceptions.OutOfRange(f"Argument of periapsis, {raan}, is out of "
+			raise exceptions.OutOfRangeError(f"Argument of periapsis, {raan}, is out of "
 										f"range, should be 0 < argp < 360")
 
 		if mean_nu > 360 or mean_nu < 0: 		#noqa: PLR2004
 			logger.error("Mean anomaly, %s, is out of range, should be 0 < mean_nu < 360", mean_nu)
-			raise exceptions.OutOfRange(f"Mean anomaly, {mean_nu}, is out of range, "
+			raise exceptions.OutOfRangeError(f"Mean anomaly, {mean_nu}, is out of range, "
 										f"should be 0 < mean_nu < 360")
 
 		attr_dct = _createEmptyOrbitAttrDict()
