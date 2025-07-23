@@ -9,7 +9,7 @@ import logging
 import pathlib
 import types
 import typing
-from typing import TypedDict
+from typing import Any, TypedDict, cast
 
 from astropy import units as astropy_units
 from astropy.time import Time as astropyTime
@@ -325,7 +325,7 @@ class Orbit:
 		attr_dct['pos'] = positions
 		# Assume linear motion between each position at each timestep;
 		# Then assume it stops at the last timestep.
-		vel = attr_dct['pos'][1:] - attr_dct['pos'][:-1]
+		vel = positions[1:] - positions[:-1]
 		attr_dct['vel'] = np.concatenate((vel, np.array([[0, 0, 0]])))
 		attr_dct['name'] = 'Sat from position list'
 		attr_dct['gen_type'] = 'position list'
@@ -398,6 +398,8 @@ class Orbit:
 
 		# Calculate data for first run
 		sub_timespan = sub_timespans[0]
+		# help out static type analysis (won't be None), no runtime effect
+		sub_timespan = cast("np.ndarray[tuple[int], np.dtype[np.datetime64]]",sub_timespan)
 		sub_skyfld_earthsat = unq_skyfld_earth_sats[tle_epoch_idxs[0]]
 		tle_epoch = tle_dates[tle_epoch_idxs[0]]
 		sat_rec = sub_skyfld_earthsat.at(skyfld_ts.utc(sub_timespan))
@@ -421,6 +423,8 @@ class Orbit:
 		# fill in data for any other sub timespans
 		for ii in range(1,len(sub_timespans)):
 			sub_timespan = sub_timespans[ii]
+			# help out static type analysis (won't be None), no runtime effect
+			sub_timespan = cast("np.ndarray[tuple[int], np.dtype[np.datetime64]]",sub_timespan)
 			sub_skyfld_earthsat = unq_skyfld_earth_sats[tle_epoch_idxs[ii]]
 			tle_epoch = tle_dates[tle_epoch_idxs[ii]]
 			sat_rec = sub_skyfld_earthsat.at(skyfld_ts.utc(sub_timespan))
@@ -461,9 +465,12 @@ class Orbit:
 		attr_dct['raan'] = raan
 		attr_dct['argp'] = argp
 		attr_dct['TLE_epochs'] = TLE_epochs
-		attr_dct['period'] = float(2 * np.pi / sub_skyfld_earthsat.model.no_kozai * 60)
+
+		period = float(2 * np.pi / sub_skyfld_earthsat.model.no_kozai * 60)
+		attr_dct['period'] = period
+
 		if timespan.time_step is not None:
-			attr_dct['period_steps'] = int(attr_dct['period'] / timespan.time_step.total_seconds())
+			attr_dct['period_steps'] = int(period / timespan.time_step.total_seconds())
 		else:
 			attr_dct['period_steps'] = None
 		attr_dct['name'] = sub_skyfld_earthsat.name
@@ -577,7 +584,10 @@ class Orbit:
 		# TODO: satrec doesn't have a frame_xyz_and_velocity in this case
 
 		period = float(2 * np.pi / skyfld_earthsat.model.no_kozai * 60)
-		period_steps = int(period / timespan.time_step.total_seconds())
+		if timespan.time_step is not None:
+			period_steps = int(period / timespan.time_step.total_seconds())
+		else:
+			period_steps = None
 
 		attr_dct['name'] = name
 		attr_dct['timespan'] = timespan
@@ -599,7 +609,7 @@ class Orbit:
 
 	#analytical
 	@classmethod
-	def fromAnalyticalOrbitalParam(cls, timespan:TimeSpan, 					#noqa: C901, PLR0913
+	def fromAnalyticalOrbitalParam(cls, timespan:TimeSpan, 					#noqa: C901, PLR0912, PLR0913
 											body:str='Earth',
 											a:float=6978,
 											ecc:float=0,
@@ -709,7 +719,10 @@ class Orbit:
 		vel = np.asarray(ephem.rv()[1], dtype=np.float64) * 1000
 
 		period = float(orb.period.unit.in_units('s') * orb.period.value)
-		period_steps = int(period / timespan.time_step.total_seconds())
+		if timespan.time_step is not None:
+			period_steps = int(period / timespan.time_step.total_seconds())
+		else:
+			period_steps = None
 
 		attr_dct['name'] = name
 		attr_dct['timespan'] = timespan
@@ -781,8 +794,10 @@ class Orbit:
 			position
 
 		Raises:
-			TypeError: Raised 'search_time' is not a valid type
+			ValueError: orbit has no pos data
 		"""
+		if self.pos is None:
+			raise ValueError("Orbit has no pos data")
 		return self._getAttributeClosestTime(self.pos, search_time)
 
 	def getVelocity(self, search_time:dt.datetime|astropyTime) \
@@ -796,13 +811,18 @@ class Orbit:
 			velocity
 
 		Raises:
-			TypeError: Raised 'search_time' is not a valid type
+			ValueError: orbit has no vel data
 		"""
+		if self.vel is None:
+			raise ValueError("Orbit has no vel data")
 		return self._getAttributeClosestTime(self.vel, search_time)
 
-	def _getAttributeClosestTime(self, attr:np.ndarray[np.dtype[np.float64]],
+	def _getAttributeClosestTime(self, attr:np.ndarray[Any, np.dtype[np.float64]],
 										search_time:dt.datetime|astropyTime)\
 										-> np.ndarray[tuple[int], np.dtype[np.float64]]:
+
+		if self.timespan is None:
+			raise ValueError("Orbit has no timespan")
 
 		if isinstance(search_time, dt.datetime):
 			_, closest_idx = self.timespan.getClosest(search_time)
