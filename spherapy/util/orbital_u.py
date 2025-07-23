@@ -1,11 +1,21 @@
+"""Utility functions for orbital calculations."""
 import numpy as np
+
 import spherapy.util.constants as consts
 
 
-def ssoInc(alt, e=0):
+def ssoInc(alt:float, e:float=0) -> float:
 	# TODO: update to calculate for different central bodies
-	'''Generates required inclination for given altitude [km] to maintain Sun Syncrhonous orbit (default = circular)'''
+	"""Generates required inclination for given altitude [km] to maintain Sun Syncrhonous orbit.
 
+	Args:
+		alt: altitude of orbit in km
+		e: [Optional] eccentricity of orbit
+			Default is circular (0)
+
+	Returns:
+		Inclination angle in degrees
+	"""
 	a = consts.R_EARTH + alt * 1e3
 	# print(a)
 	p = a * (1 - e**2)
@@ -25,58 +35,38 @@ def ssoInc(alt, e=0):
 	return np.rad2deg(inc)
 
 
-def calcPeriod(a):
-	"""Returns the period of an elliptical or circular orbit
-	
-	Parameters
-	----------
-	a : {float}
-		semi-major axis in m
+def calcPeriod(a:float) -> float:
+	"""Returns the period of an elliptical or circular orbit.
 
-	Returns
-	-------
-	float
+	Args:
+		a: semi-major axis in m
+
+	Returns:
 		Orbital period in s
 	"""
+	return 2 * np.pi * np.sqrt(a**3 / consts.GM_EARTH)
 
-	period = 2 * np.pi * np.sqrt(a**3 / consts.GM_EARTH)
-	return period
+def calcOrbitalVel(a:float, pos:np.ndarray[tuple[int],np.dtype[np.float64]]) -> float:
+	"""Return the instantaneous velocity magnitude for an elliptical orbit at position.
 
+	Args:
+		a: semi-major axis in m
+		pos: cartesian position, assuming the origin is at the central body.
 
-def calcOrbitalVel(a, pos):
-	"""Return the instantaneous velocity magnitude for an elliptical orbit of semi-major axis, a at position, pos.
-	
-	Parameters
-	----------
-	a : {float}
-		semi-major axis in m
-	pos : {ndarray}
-		cartesian position, assuming the origin is at the central body.
-	
-	Returns
-	-------
-	float
+	Returns:
 		instantaneous velocity magnitude.
 	"""
 	r = np.linalg.norm(pos)
 
-	v = np.sqrt(consts.GM_EARTH * (2 / r - 1 / a))
+	return np.sqrt(consts.GM_EARTH * (2 / r - 1 / a))
 
-	return v
+def calcMeanMotion(a:float) -> float:
+	"""Returns mean motion [radians/s] for an elliptical or circular orbit with semi-major axis a.
 
+	Args:
+		a: semi-major axis in m
 
-def calcMeanMotion(a):
-	"""Returns mean motion [radians/s] for an elliptical or circular orbit with semi-major axis a
-	
-	Parameters
-	----------
-	a : {float}
-		semi-major axis in m
-
-	Returns
-	-------
-	float
+	Returns:
 		Orbital period in s
 	"""
-
 	return np.sqrt(consts.GM_EARTH / a**3)
