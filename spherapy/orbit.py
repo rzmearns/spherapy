@@ -528,7 +528,8 @@ class Orbit:
 
 		if raan > 360 or raan < 0: 				#noqa: PLR2004
 			logger.error("RAAN, %s, is out of range, should be 0 < inc < 360", raan)
-			raise exceptions.OutOfRangeError(f"RAAN, {raan}, is out of range, should be 0 < inc < 360")
+			raise exceptions.OutOfRangeError(f"RAAN, {raan}, is out of range, "
+												f"should be 0 < inc < 360")
 
 		if argp > 360 or argp < 0: 				#noqa: PLR2004
 			logger.error("Argument of periapsis, %s, is out of range, "
@@ -675,7 +676,8 @@ class Orbit:
 
 		if raan > 360 or raan < 0: 				#noqa: PLR2004
 			logger.error("RAAN, %s, is out of range, should be 0 < inc < 360", inc)
-			raise exceptions.OutOfRangeError(f"RAAN, {inc}, is out of range, should be 0 < inc < 360")
+			raise exceptions.OutOfRangeError(f"RAAN, {inc}, is out of range, "
+												f"should be 0 < inc < 360")
 
 		if argp > 360 or argp < 0: 				#noqa: PLR2004
 			logger.error("Argument of periapsis, %s, is out of range, "
