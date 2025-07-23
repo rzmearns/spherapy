@@ -199,6 +199,7 @@ section-order = [
   "local-folder",
   "testing"
 ]
+split-on-trailing-comma = false
 
 known-first-party = ["satplot"]
 
