@@ -63,8 +63,11 @@ class TLEGetter:
 		while attempt_number < MAX_RETRIES:
 			try:
 				opts = self._calcRequestAllOptions(sat_id)
-				resp_block = self.stc.tle(*opts)
-				self._writeResponseToNewFile(sat_id, resp_block)
+				logger.info("Requesting TLEs from spacetrack with following options: %s", opts)
+				resp_line_iterator = self.stc.tle(**opts)
+				resp_lines = list(resp_line_iterator)
+				tle_dict_list = self._dictify3LEs(resp_lines)
+				self._writeTLEsToNewFile(sat_id, tle_dict_list)
 				break
 			except TimeoutError:
 				attempt_number += 1
@@ -85,10 +88,14 @@ class TLEGetter:
 		while attempt_number < MAX_RETRIES:
 			try:
 				_, days_since_last_epoch = self._findLocalLastEpoch(sat_id)
+				print(f'{days_since_last_epoch=}')
 				if days_since_last_epoch > 0.0:
 					opts = self._calcRequestPartialOptions(sat_id)
-					resp_block = self.stc.tle(*opts)
-					self._writeResponseToFile(sat_id, resp_block)
+					logger.info("Requesting TLEs from spacetrack with following options: %s", opts)
+					resp_line_iterator = self.stc.tle(**opts)
+					resp_lines = list(resp_line_iterator)
+					tle_dict_list = self._dictify3LEs(resp_lines)
+					self._writeTLEsToFile(sat_id, tle_dict_list)
 				break
 			except TimeoutError as e:
 				print(e)
@@ -125,9 +132,10 @@ class TLEGetter:
 
 		request_options = {}
 		request_options['norad_cat_id'] = sat_id
-		request_options['order_by'] = 'epoch_asc'
+		request_options['orderby'] = 'epoch asc'
 		request_options['limit'] = 500000
 		request_options['format'] = '3le'
+		request_options['iter_lines'] = True
 
 		return request_options
 
@@ -137,43 +145,71 @@ class TLEGetter:
 
 		request_options = {}
 		request_options['norad_cat_id'] = sat_id
-		request_options['order_by'] = 'epoch_asc'
+		request_options['orderby'] = 'epoch asc'
 		request_options['epoch'] = f'>now-{days_since_last_epoch+1}'
 		request_options['limit'] = 500000
 		request_options['format'] = '3le'
+		request_options['iter_lines'] = True
 
 		return request_options
 
-	def _writeResponseToFile(self, sat_id:int, resp:str):
+	def _writeTLEsToFile(self, sat_id:int, tle_dict_list:list[dict[int,dict[str,list[str]|str]]]):
 		"""Append response to TLE file"""
 		last_epoch, _ = self._findLocalLastEpoch(sat_id)
-		resp = resp[:-1]
-		resp_lines = resp.split('\n')
-		next_idx = 0
-		for ii, line in enumerate(resp_lines):
-			# Try block for debugging, only sometimes failing, trying to investigate.
+		first_new_idx = None
+		for tle_idx, tle_dict in enumerate(tle_dict_list):
 			try:
-				next_idx = ii
-				if line[0] == '1' and float(line.split()[3])>last_epoch:
-					break
-			except IndexError:
-				print(f'{last_epoch=}')
-				print(f'{ii=}')
-				print(f'{line=}')
-				print(f'{line.split()}')
-				print(f'{resp_lines}')
+				epoch = float(tle_dict[1]['fields'][3])
+			except ValueError as e:
+				print(f'ValueError:{e}:{tle_idx}:{tle_dict}')
+			if epoch > last_epoch:
+				first_new_idx = tle_idx
+				break
+		if first_new_idx is not None:
+			with getTLEFilePath(sat_id).open('a') as fp:
+				for tle_dict in tle_dict_list[first_new_idx:]:
+					fp.write('\n')
+					fp.write(self._stringify3LEDict(tle_dict))
 
-		if resp_lines[0] != '':
-			with open(getTLEFilePath(sat_id), 'a') as fp:
-				fp.write('\n')
-				fp.write('\n'.join(resp_lines[next_idx-1:]))
-
-	def _writeResponseToNewFile(self, sat_id:int, resp:str):
+	def _writeTLEsToNewFile(self, sat_id:int, tle_dict_list:list[dict[int,dict[str,list[str]|str]]]):
 		"""New TLE, write entire content to new file"""
-		with open(getTLEFilePath(sat_id), 'w') as fp:
-			if resp[-1] == '\n':
-				resp = resp[:-1]
-			fp.write(resp)
+		with open(getTLEFilePath(sat_id), 'w') as fp:\
+			# don't want to begin or end file with newline
+			fp.write(self._stringify3LEDict(tle_dict_list[0]))
+			for tle_dict in tle_dict_list[1:]:
+				fp.write('\n')
+				fp.write(self._stringify3LEDict(tle_dict))
+
+	def _dictify3LEs(self, lines:list[str]) -> list[dict[int,dict[str,list[str]|str]]]:
+		if len(lines) == 0:
+			raise ValueError("No data")
+		if len(lines)%3 != 0:
+			# If not obvious what lines relate to eachother, can't make assumption -> abort.
+			raise ValueError('Incomplete TLEs present, aborting')
+
+		list_3les = []
+		tle = {0:{'fields':[], 'line_str':''},
+				1:{'fields':[], 'line_str':''},
+				2:{'fields':[], 'line_str':''}}
+		for ii, line in enumerate(lines):
+			fields = line.split()
+			# insert fields into and store original line in tle dict
+			tle[int(fields[0])]['fields'] = fields
+			tle[int(fields[0])]['line_str'] = line
+			if int(fields[0]) == 2:
+				# store parsed tle
+				list_3les.append(tle.copy())
+				# empty dict
+				tle[0] = {'fields':[], 'line_str':''}
+				tle[1] = {'fields':[], 'line_str':''}
+				tle[2] = {'fields':[], 'line_str':''}
+
+		return list_3les
+
+	def _stringify3LEDict(self, tle_dict:dict[int,dict[str,list[str]|str]]) -> str:
+		lines = [line_dict['line_str'] for line_dict in tle_dict.values()]
+		tle_str = '\n'.join(lines)
+		return tle_str
 
 class InvalidCredentials(Exception):
 	def __init__(self, message):
