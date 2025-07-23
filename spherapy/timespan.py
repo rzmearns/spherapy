@@ -5,14 +5,13 @@ This module provides:
 """
 import datetime as dt
 import logging
-import typing
 from typing import Self
 
 from astropy.time import Time as astropyTime
 from dateutil.relativedelta import relativedelta
 import numpy as np
 from skyfield.api import load
-import skyfield.Time
+import skyfield.timelib
 
 logger = logging.getLogger(__name__)
 
@@ -184,7 +183,7 @@ class TimeSpan:
 			return self._timearr
 		return self._timearr[idx]
 
-	def asSkyfield(self, idx:int) -> skyfield.Time:
+	def asSkyfield(self, idx:int) -> skyfield.timelib.Time:
 		"""Return TimeSpan element as Skyfield Time object.
 
 		Args:
