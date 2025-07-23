@@ -1,19 +1,35 @@
-import datetime as dt
-from dateutil.relativedelta import relativedelta
-import logging
-import numpy as np
-from astropy.time import Time as astropyTime
-from skyfield.api import load
+"""Class for series of timestamps.
 
-import spherapy.util.exceptions as exceptions
+This module provides:
+- TimeSpan: a series of timestamps to be used by an orbit object
+"""
+import datetime as dt
+import logging
+from typing import Self
+
+from astropy.time import Time as astropyTime
+from dateutil.relativedelta import relativedelta
+import numpy as np
+from skyfield.api import load
+import skyfield.timelib
 
 logger = logging.getLogger(__name__)
 
 
-class TimeSpan(object):
+class TimeSpan:
+	"""A series of timestamps.
 
+	Attributes:
+		start: The first timestamp
+		end: The last timestamp
+		time_step: The difference between timestamps in seconds
+						Can be None if irregular steps
+		time_period: The difference between end and start in seconds
+
+	"""
 	def __init__(self, t0:dt.datetime, timestep:str='1S', timeperiod:str='10S'):
 		"""Creates a series of timestamps in UTC.
+
 		Difference between each timestamp = timestep
 		Total duration = greatest integer number of timesteps less than timeperiod
 			If timeperiod is an integer multiple of timestep,
@@ -39,7 +55,7 @@ class TimeSpan(object):
 					(d)ays, (H)ours, (M)inutes, (S)econds, (mS) milliseconds, (uS) microseconds
 					(the default is '1d')
 
-		Raises
+		Raises:
 		------
 		ValueError
 		"""
@@ -52,21 +68,20 @@ class TimeSpan(object):
 		self.start = t0
 		self.time_step = self._parseTimestep(timestep)
 		self.end = self._parseTimeperiod(t0, timeperiod)
-		self.time_period = self.end - self.start	
+		self.time_period = self.end - self.start
 
-		logger.info("Creating TimeSpan between {} and {} with {} seconds timestep"
-					.format(self.start, self.end, self.time_step.total_seconds()))
+		logger.info("Creating TimeSpan between %s and %s with %s seconds timestep",
+						self.start, self.end, self.time_step.total_seconds())
 
 
 		if self.start >= self.end:
-			logger.error("Timeperiod: {} results in an end date earlier than the start date".
-							format(timeperiod))
-			raise ValueError("Invalid timeperiod value: {}".format(timeperiod))
+			logger.error("Timeperiod: %s results in an end date earlier than the start date",
+							timeperiod)
+			raise ValueError(f"Invalid timeperiod value: {timeperiod}")
 
 		if self.time_period < self.time_step:
-			logger.error("Timeperiod: {} is smaller than the timestep {}.".
-							format(timeperiod, timestep))
-			raise ValueError("Invalid timeperiod value, too small: {}".format(timeperiod))
+			logger.error("Timeperiod: %s is smaller than the timestep %s.", timeperiod, timestep)
+			raise ValueError(f"Invalid timeperiod value, too small: {timeperiod}")
 
 		# Calculate step numbers and correct for non integer steps.
 		n_down = int(np.floor(self.time_period / self.time_step))
@@ -74,44 +89,53 @@ class TimeSpan(object):
 			logger.info("Rounding to previous integer number of timesteps")
 			self.end = n_down * self.time_step + self.start
 			self.time_period = self.end - self.start
-			
-			logger.info("Adjusting TimeSpan to {} -> {} with {} seconds timestep".
-						format(self.start, self.end, self.time_step.total_seconds()))
+
+			logger.info("Adjusting TimeSpan to %s -> %s with %s seconds timestep",
+							self.start, self.end, self.time_step.total_seconds())
 
 
-		self._timearr = np.arange(self.start.replace(tzinfo=None), self.end.replace(tzinfo=None)+self.time_step, self.time_step).astype(dt.datetime)
+		self._timearr = np.arange(self.start.replace(tzinfo=None),
+									self.end.replace(tzinfo=None)+self.time_step,
+									self.time_step).astype(dt.datetime)
 		self._timearr = np.vectorize(lambda x: x.replace(tzinfo=dt.timezone.utc))(self._timearr)
 		self._skyfield_timespan = load.timescale()
 
 
+	def __hash__(self) -> int:
+		"""Returns a hash of the timespan."""
+		return hash((self.start, self.end, self.time_step))
+
     # Make it callable and return the data for that entry
-	def __call__(self, idx=None):
+	def __call__(self) -> np.ndarray[tuple[int], np.dtype[dt.datetime]]:
+		"""Returns the internal _timearr when the TimeSpan is called."""
 		return self._timearr
 
-	def __getitem__(self, idx=None):
-		if idx == None:
+	def __getitem__(self, idx:None|int|np.integer|tuple|list|slice=None) \
+						-> None|dt.datetime|np.ndarray[tuple[int], np.dtype[dt.datetime]]:
+		"""Returns an index or slice of the TimeSpan as an array of datetime objects."""
+		if idx is None:
 			return self._timearr
-		elif isinstance(idx, int) or isinstance(idx, np.integer):
+		if isinstance(idx, int|np.integer):
 			return self._timearr[idx]
-		elif isinstance(idx, tuple):
-			if len(idx) == 2:
+		if isinstance(idx, tuple):
+			if len(idx) == 2: 								#noqa: PLR2004
 				return self._timearr[idx[0]:idx[1]]
-			else:
-				return self._timearr[idx[0]:idx[1]:idx[2]]
-		elif isinstance(idx, list):
+			return self._timearr[idx[0]:idx[1]:idx[2]]
+		if isinstance(idx, list):
 			return self._timearr[[idx]]
-		elif isinstance(idx,slice):
+		if isinstance(idx,slice):
 			return self._timearr[idx]
-		else:
-			raise TypeError('index is unknown type')
+		raise TypeError('index is unknown type')
 
-	def __eq__(self, other):
+	def __eq__(self, other:object) -> bool:
+		"""Checks if other TimeSpan is equal to self."""
 		if not isinstance(other, TimeSpan):
 			return NotImplemented
 
-		return np.all(self.asDatetime() == other.asDatetime())
+		return bool(np.all(self.asDatetime() == other.asDatetime()))
 
-	def __add__(self, other):
+	def __add__(self, other:Self) -> 'TimeSpan':
+		"""Apeends other TimeSpan to this one, does not order timesteps."""
 		self_copy = TimeSpan(self.start)
 
 		self_copy.start = self.start
@@ -126,71 +150,88 @@ class TimeSpan(object):
 
 		return self_copy
 
-	def asAstropy(self, *args, scale='utc'):
-		"""
-		Return ndarray of TimeSpan as astropy.time objects
-		
-		Returns
+	def asAstropy(self, idx:None|int=None, scale:str='utc') -> astropyTime:
+		"""Return ndarray of TimeSpan as astropy.time objects.
+
+		Args:
+			idx: timestamp index to return inside an astropyTime object
+					if no index supplied, returns all timestamps
+			scale: astropy time scale, can be one of
+					('tai', 'tcb', 'tcg', 'tdb', 'tt', 'ut1', 'utc')
+
+		Returns:
 		-------
 		ndarray
 		"""
-		# scale = kwargs.get('scale')
-		if len(args) == 1 and isinstance(args[0], int):
-			return astropyTime(self._timearr, scale=scale)[args[0]]
-		else:
+		if idx is None:
 			return astropyTime(self._timearr, scale=scale)
+		return astropyTime(self._timearr[idx], scale=scale)
 
-	def asDatetime(self, *args):
-		"""
-		Return ndarray of TimeSpan as datetime objects	
-		
-		Returns
+	def asDatetime(self, idx:None|int=None) \
+		-> dt.datetime|np.ndarray[tuple[int], np.dtype[dt.datetime]]:
+		"""Return ndarray of TimeSpan as datetime objects.
+
+		Args:
+			idx: timestamp index to return as a datetime
+					If no index supplied, returns whole array
+
+		Returns:
 		-------
 		ndarray
 		"""
-		if len(args) == 1 and isinstance(args[0], int):
-			return self._timearr[args[0]]
-		else:
+		if idx is None:
 			return self._timearr
+		return self._timearr[idx]
 
-	def asSkyfield(self, *args):
-		"""
-		Return TimeSpan element as Skyfield Time object
-		
-		Returns
+	def asSkyfield(self, idx:int) -> skyfield.timelib.Time:
+		"""Return TimeSpan element as Skyfield Time object.
+
+		Args:
+			idx: timestamp index to return as skyfield time object
+
+		Returns:
 		-------
 		Skyfield Time
 		"""
-		if len(args) == 1 and isinstance(args[0], int):
-			datetime = self._timearr[args[0]]
-			datetime = datetime.replace(tzinfo=dt.timezone.utc)
-			return self._skyfield_timespan.from_datetime(datetime)
-		else:
-			raise IndexError
+		datetime = self._timearr[idx]
+		datetime = datetime.replace(tzinfo=dt.timezone.utc)
+		return self._skyfield_timespan.from_datetime(datetime)
 
 	def asText(self, idx:int) -> str:
+		"""Returns a text representation of a particular timestamp.
+
+		Timestamp will be formatted as YYYY-mm-dd HH:MM:SS
+
+		Args:
+			idx: timestamp index to format
+
+		Returns:
+			str:
+		"""
 		return self._timearr[idx].strftime("%Y-%m-%d %H:%M:%S")
 
-	def secondsSinceStart(self) -> int:
-		'''
-		Return ndarray with the seconds of all timesteps since the beginning.
-		'''
+	def secondsSinceStart(self) -> np.ndarray[tuple[int], np.dtype[np.float64]]:
+		"""Return ndarray with the seconds of all timesteps since the beginning.
+
+		Returns:
+			array of seconds since start for each timestamp
+		"""
 		diff = self._timearr - self.start
 		days = np.vectorize(lambda x: x.days)(diff)
 		secs = np.vectorize(lambda x: x.seconds)(diff)
 		usecs = np.vectorize(lambda x: x.microseconds)(diff)
 		return days * 86400 + secs + usecs * 1e-6
 
-	def getClosest(self, t_search:dt.datetime):
-		"""Find the closest time in a TimeSpan
-				
+	def getClosest(self, t_search:dt.datetime) -> tuple[dt.datetime, int]:
+		"""Find the closest time in a TimeSpan.
+
 		Parameters
 		----------
 		t_search : datetime to search for in TimeSpan
 				If timezone naive, assumed to be in UTC
 				If timezone aware, will be converted to UTCtime to find
-		
-		Returns
+
+		Returns:
 		-------
 		datetime, int
 			Closest datetime in TimeSpan, index of closest date in TimeSpan
@@ -205,13 +246,15 @@ class TimeSpan(object):
 		res_index = int(np.argmin(out))
 		return self.asDatetime(res_index), res_index
 
-	def _parseTimeperiod(self, t0, timeperiod):
-		for index, letter in enumerate(timeperiod):
+	def _parseTimeperiod(self, t0:dt.datetime, timeperiod:str) -> dt.datetime:
+		last_idx = 0
+		for idx, letter in enumerate(timeperiod):
+			last_idx = idx
 			if not (letter.isdigit() or letter == '.'):
 				break
 
-		val = float(timeperiod[0:index])
-		unit = timeperiod[index:]
+		val = float(timeperiod[0:last_idx])
+		unit = timeperiod[last_idx:]
 		values = np.zeros(6)
 		if unit == 'd':
 			values[5] = val
@@ -227,11 +270,12 @@ class TimeSpan(object):
 			values[0] = val
 		else:
 			logger.error("Invalid timeperiod unit: Valid units are (y)ears, (m)onths, (W)eeks,"
-						+ " (d)ays, (H)ours, (M)inutes, (S)econds, (mS) milliseconds, (uS) microseconds")
-			raise ValueError("Invalid timeperiod unit:{}".format(unit))
+						" (d)ays, (H)ours, (M)inutes, (S)econds, (mS) milliseconds,"
+						" (uS) microseconds")
+			raise ValueError(f"Invalid timeperiod unit:{unit}")
 
 		return t0 + relativedelta(days=values[5], hours=values[4], minutes=values[3],
-								seconds=values[2], microseconds=values[0])	# noqa: E126
+								seconds=values[2], microseconds=values[0])
 
 	def _parseTimestep(self, timestep:str) -> dt.timedelta:
 		last_idx = 0
@@ -242,7 +286,7 @@ class TimeSpan(object):
 
 		val = float(timestep[0:last_idx])
 		unit = timestep[last_idx:]
-		values = np.zeros(6)		
+		values = np.zeros(6)
 		if unit == 'd':
 			values[5] = val
 		elif unit == 'H':
@@ -256,19 +300,25 @@ class TimeSpan(object):
 		elif unit == 'uS':
 			values[0] = val
 		else:
-			logger.error("Invalid timestep unit: Valid units are (d)ays, (H)ours,"
-						+ "(M)inutes, (S)econds, (mS) milliseconds, (uS) microseconds")
-			raise ValueError("Invalid timestep unit:{}".format(unit))
+			logger.error("Invalid timestep unit: Valid units are (d)ays, (H)ours," \
+						" (M)inutes, (S)econds, (mS) milliseconds, (uS) microseconds")
+			raise ValueError(f"Invalid timestep unit:{unit}")
 
-		return dt.timedelta(days=values[5], seconds=values[2], 
+		return dt.timedelta(days=values[5], seconds=values[2],
 							microseconds=values[0], milliseconds=values[1],
 							minutes=values[3], hours=values[4])
 
-	def __len__(self):
+	def __len__(self) -> int:
+		"""Returns the length of the TimeSpan."""
 		return len(self._timearr)
 
 
-	def cherryPickFromIndices(self, idxs):
+	def cherryPickFromIndices(self, idxs:int|tuple|slice):
+		"""Adjust TimeSpan to only contain the indices specified by idxs.
+
+		Args:
+			idxs: numpy style indexing of TimeSpan
+		"""
 		self._timearr = self._timearr[idxs]
 		self.start = self._timearr[0]
 		self.end = self._timearr[-1]
@@ -278,7 +328,15 @@ class TimeSpan(object):
 		self.time_period = self.end - self.start
 
 	@classmethod
-	def fromDatetime(cls, dt_arr:np.ndarray[dt.datetime], timezone=dt.timezone.utc):
+	def fromDatetime(cls, dt_arr:np.ndarray[tuple[int], np.dtype[dt.datetime]],
+							timezone:dt.timezone=dt.timezone.utc) -> 'TimeSpan':
+		"""Create a TimeSpan from an array of datetime objects.
+
+		Args:
+			dt_arr: 1D array of datetime objects
+			timezone: timezone to apply to each element of datetime array.
+				Default: dt.timezone.utc
+		"""
 		for ii in range(len(dt_arr)):
 			dt_arr[ii] = dt_arr[ii].replace(tzinfo=timezone)
 		start = dt_arr[0]

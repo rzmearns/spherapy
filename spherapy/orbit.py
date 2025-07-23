@@ -1,66 +1,88 @@
+"""Class for orbital data.
 
-import numpy as np
-import sys
+This module provides:
+- OrbitAttrDict: A TypedDict typing the instance attributes of an Orbit
+- Orbit: A class of timestamped orbital data
+"""
+import datetime as dt
 import logging
-from progressbar import progressbar
 import pathlib
-import pickle
+import types
+import typing
+from typing import TypedDict
 
 from astropy import units as astropy_units
-
-from hapsira.bodies import Earth, Mars, Sun, Moon
-from hapsira.twobody import Orbit as hapsiraOrbit
-from hapsira.ephem import Ephem
-
-from sgp4.api import Satrec, WGS72
-from skyfield.framelib import itrs
-
 from astropy.time import Time as astropyTime
-import datetime as dt
+from hapsira.bodies import Earth, Mars, Moon, Sun
+from hapsira.ephem import Ephem
+from hapsira.twobody import Orbit as hapsiraOrbit
+import numpy as np
+from sgp4.api import WGS72, Satrec
+
 # Don't need to import all of skyfield just for EarthSatellite loading.
 # TODO: figure out the lightest import to use
-from skyfield.api import load, EarthSatellite, wgs84
+from skyfield.api import EarthSatellite, load, wgs84
+from skyfield.framelib import itrs
 
 from spherapy.timespan import TimeSpan
-
-import spherapy.util.list_u as list_u
-import spherapy.util.epoch_u as epoch_u
-import spherapy.util.orbital_u as orbit_u
-import spherapy.util.exceptions as exceptions
+from spherapy.util import epoch_u, exceptions
 import spherapy.util.constants as consts
-
-import typing
-from typing import Any, TypedDict
-
-import types
+import spherapy.util.orbital_u as orbit_u
 
 logger = logging.getLogger(__name__)
 
 
 class OrbitAttrDict(TypedDict):
+	"""A TypedDict providing type annotations for the Orbit class.
+
+	Attributes:
+		name:
+		satcat_id:
+		gen_type:
+		timespan:
+		TLE_epochs:
+		pos:
+		pos_ecef:
+		vel_ecef:
+		vel:
+		lat:
+		lon:
+		sun_pos:
+		moon_pos:
+		alt:
+		eclipse:
+		central_body:
+		period:
+		period_steps:
+		semi_major:
+		ecc:
+		inc:
+		raan:
+		argp:
+	"""
 	name: None|str
 	satcat_id: None|int
 	gen_type: None|str
 	timespan: None|TimeSpan
 	TLE_epochs: None|np.ndarray[tuple[int], np.dtype[dt.datetime]]
-	pos: None|np.ndarray[tuple[int,int], np.dtype[np.float_]]
-	pos_ecef: None|np.ndarray[tuple[int,int], np.dtype[np.float_]]
-	vel_ecef: None|np.ndarray[tuple[int,int], np.dtype[np.float_]]
-	vel: None|np.ndarray[tuple[int,int], np.dtype[np.float_]]
-	lat: None|np.ndarray[tuple[int], np.dtype[np.float_]]
-	lon: None|np.ndarray[tuple[int], np.dtype[np.float_]]
-	sun_pos: None|np.ndarray[tuple[int,int], np.dtype[np.float_]]
-	moon_pos: None|np.ndarray[tuple[int,int], np.dtype[np.float_]]
-	alt: None|np.ndarray[tuple[int], np.dtype[np.float_]]
+	pos: None|np.ndarray[tuple[int,int], np.dtype[np.float64]]
+	pos_ecef: None|np.ndarray[tuple[int,int], np.dtype[np.float64]]
+	vel_ecef: None|np.ndarray[tuple[int,int], np.dtype[np.float64]]
+	vel: None|np.ndarray[tuple[int,int], np.dtype[np.float64]]
+	lat: None|np.ndarray[tuple[int], np.dtype[np.float64]]
+	lon: None|np.ndarray[tuple[int], np.dtype[np.float64]]
+	sun_pos: None|np.ndarray[tuple[int,int], np.dtype[np.float64]]
+	moon_pos: None|np.ndarray[tuple[int,int], np.dtype[np.float64]]
+	alt: None|np.ndarray[tuple[int], np.dtype[np.float64]]
 	eclipse: None|np.ndarray[tuple[int], np.dtype[np.bool_]]
 	central_body: None|str
 	period: None|float
 	period_steps: None|int
-	semi_major: None|np.ndarray[tuple[int], np.dtype[np.float_]]
-	ecc: None|np.ndarray[tuple[int], np.dtype[np.float_]]
-	inc: None|np.ndarray[tuple[int], np.dtype[np.float_]]
-	raan: None|np.ndarray[tuple[int], np.dtype[np.float_]]
-	argp: None|np.ndarray[tuple[int], np.dtype[np.float_]]
+	semi_major: None|np.ndarray[tuple[int], np.dtype[np.float64]]
+	ecc: None|np.ndarray[tuple[int], np.dtype[np.float64]]
+	inc: None|np.ndarray[tuple[int], np.dtype[np.float64]]
+	raan: None|np.ndarray[tuple[int], np.dtype[np.float64]]
+	argp: None|np.ndarray[tuple[int], np.dtype[np.float64]]
 
 def _createEmptyOrbitAttrDict() -> OrbitAttrDict:
 	return OrbitAttrDict({
@@ -89,93 +111,125 @@ def _createEmptyOrbitAttrDict() -> OrbitAttrDict:
 	'argp':None,
 	})
 
-def validateTypedDict(obj:Any, typ: Any) -> bool:
+def _validateTypedDict(obj:object, typ: type) -> bool:
+	"""Validates all fields of a TypedDict have been instantiated, and are of correct type.
+
+	Raises:
+		KeyError: If a field of the TypedDict is missing
+		TypeError: If a field of the TYpedDict is incorrect
+	"""
 	for attr_name, spec_attr_type in typ.__annotations__.items():
 		try:
 			attr_value = obj.get(attr_name, None)
-		except KeyError:
+		except KeyError as e:
 			# Check for missing keys
-			raise KeyError('Typed Dict is missing key: %s', attr_name)
+			raise KeyError('Typed Dict is missing key: %s', attr_name) from e
 		if type(spec_attr_type) is types.UnionType:
 			# check union of types
 			good_type = False
 			for sub_type in typing.get_args(spec_attr_type):
 				# choose validator
 				if sub_type in (None, types.NoneType):
-					validator = NoneValidator
+					validator = _NoneValidator
 				else:
-					validator = genericValidator
+					validator = _genericValidator
 				if validator(attr_value, sub_type):
 					good_type = True
 					break
 			if not good_type:
-				raise TypeError(f'{attr_name} is type {type(attr_value)}, should be {spec_attr_type}')
-		elif not genericValidator(attr_value, spec_attr_type):
+				raise TypeError(f'{attr_name} is type {type(attr_value)}, '
+								f'should be {spec_attr_type}')
+		elif not _genericValidator(attr_value, spec_attr_type):
 			# check all other types
 			raise TypeError(f'{attr_name} is type {type(attr_value)}, should be {spec_attr_type}')
 	return True
 
-def NoneValidator(obj:Any, check_type:Any) -> bool:
-	if type(obj) is types.NoneType:
-		return True
-	return False
+def _NoneValidator(obj:object, check_type:type) -> bool:  #noqa: ARG001
+	return type(obj) is types.NoneType
 
-def genericValidator(obj:Any, check_type:Any) -> bool:
+def _genericValidator(obj:object, check_type:type|types.GenericAlias) -> bool:
 	if type(check_type) is types.GenericAlias:
 		if isinstance(obj, check_type.__origin__):
 			return True
-	else:
-		if isinstance(obj, check_type):
+	elif isinstance(obj, check_type):
 			return True
 	return False
 
-class Orbit():
-	'''
-	Contains timestepped array of orbital position and velocity data for a satellite, coordinate system depending on the central body.
-	Contains timestepped array of sun position.
-	Timing data taken from a TimeSpan object.
+class Orbit:
+	"""Timestamped orbital data for a satellite, coordinate system depending on the central body.
 
-	Attributes
-	----------
-	timespan: TimeSpan
-		Timespan over which orbit is to be simulated
-
-	pos: (N, 3) np.array
-		Cartesian coordinates of the position of the satellite at each time in a TimeSpan (units: km)
-		Coordinate system depending on the central body.
-
-	vel: (N, 3) np.array
-		Cartesian coordinates of the velocity of the satellite at each time in a TimeSpan (units: m/s)
-		Coordinate system depending on the central body.
-
-	sun_pos: (N, 3) np.array
-		Vector of the sun's position at each timestep (GCRS; units: km)
-
-	period: float
-		Period of the satellite's orbit (units: s)
-
-	period_steps: float
-		Number of timesteps per orbital period of the satellite.
-		Useful to check the timestep is appropriate for this orbit.
-		Recommended: 10 < period_steps < 100 or so? Should we write warnings if outside this range?
-
-	'''
+	Attributes:
+		timespan: Timespan over which orbit is to be simulated
+		name: Name of the satellite
+		satcat_id: NORAD satellite catelogue ID (if generated from a TLE)
+		gen_type: How the orbit was generated
+		TLE_epochs: Nx1 numpy array of TLE epoch used for propagation at each timestamp
+				units: TLE epoch
+		pos: Nx3 numpy array of cartesian coordinates of the position of the satellite
+			at each timestamp
+				units: km
+				frame: ECI
+		vel: Nx3 numpy array of cartesian velocities of the satellite at each timestamp
+				units: m/s
+				frame: ECI
+		pos_ecef: Nx3 numpy array of cartesian coordinates of the position of the satellite
+				at each timestamp
+					units: km
+					frame: ECEF
+		vel_ecef: Nx3 numpy array of cartesian velocities of the satellite at each timestamp
+					units: m/s
+					frame: ECEF
+		lat: Nx1 numpy array of central body latitudes of the satellite at each timestamp
+				units: degrees
+		lon: Nx1 numpy array of central body longitudes of the satellite at each timestamp
+				units: degrees
+		sun_pos: Nx3 numpy array of cartesian coordinates of the position of the Sun
+				at each timestamp
+					units: km
+					frame: ECI
+		moon_pos: Nx3 numpy array of cartesian coordinates of the position of the Moon
+				at each timestamp
+					units: km
+					frame: ECI
+		alt: Nx1 numpy array of altitudes above central body at each timestamp
+				units: km
+		eclipse: Nx1 numpy array of flag indicating if satellite is eclipsed at each timestamp
+					units: km
+		central_body: body the satellite is orbiting
+		period: orbital period in secs
+		period_steps: number of TimeSpan timestamps required to complete an orbit
+		semi_major: Nx1 numpy array of orbit semi-major axis calculated at that timestep
+						units: km
+						will be constant if no orbital maneauvers
+		ecc: Nx1 numpy array of orbit eccentricity calculated at that timestep
+				units: unitless
+				will be constant if no orbital maneauvers
+		inc: Nx1 numpy array of orbit inclination calculated at that timestep
+				units: degree
+				will be constant if no orbital maneauvers
+		raan: Nx1 numpy array of orbit RAAN calculated at that timestep
+				units: degree
+				will be constant if no orbital maneauvers
+		argp: Nx1 numpy array of orbit Arg Perigee calculated at that timestep
+				units: degree
+				will be constant if no orbital maneauvers
+	"""
 
 	def __init__(self, data:OrbitAttrDict, calc_astrobodies:bool=False):
-		'''
-		The constructor should never be called directly.
+		"""The constructor should never be called directly.
+
 		Use one of:
 			Orbit.fromTLE()
 			Orbit.fromListOfPositions()
 			Orbit.fromPropagatedOrbitalParam()
 			Orbit.fromAnalyticalOrbitalParam()
-		'''
-		# Should always be called from a class method, however,
-		# If no gen_type, spit an error here
-
-		if not validateTypedDict(data, OrbitAttrDict):
-			logger.error("Orbit() should not be called directly, use one of the fromXX constructors.")
-			raise ValueError("Orbit() should not be called directly, use one of the fromXX constructors")
+		"""
+		# Should always be called from a class method, spit error if not.
+		if not _validateTypedDict(data, OrbitAttrDict):
+			logger.error("Orbit() should not be called directly, "
+						"use one of the fromXX constructors.")
+			raise ValueError("Orbit() should not be called directly, "
+							"use one of the fromXX constructors")
 
 		self.name = data['name']
 		self.satcat_id = data['satcat_id']
@@ -225,38 +279,47 @@ class Orbit():
 			logger.info('Creating ephemeris for Sun using timespan')
 			# Timescale for sun position calculation should use TDB, not UTC
 			# The resultant difference is likely very small
-			ephem_sun = Ephem.from_body(Sun, astropyTime(self.timespan.asAstropy(scale='tdb')), attractor=Earth)
+			ephem_sun = Ephem.from_body(Sun,
+										astropyTime(self.timespan.asAstropy(scale='tdb')),
+										attractor=Earth)
 			sun_pos = ephem_sun.rv()[0]
 			self.sun_pos = np.asarray(sun_pos.to(astropy_units.km))
 
 			logger.info('Creating ephemeris for Moon using timespan')
-			ephem_moon = Ephem.from_body(Moon, astropyTime(self.timespan.asAstropy(scale='tdb')), attractor=Earth)
+			ephem_moon = Ephem.from_body(Moon,
+											astropyTime(self.timespan.asAstropy(scale='tdb')),
+											attractor=Earth)
 			moon_pos = ephem_moon.rv()[0]
 			self.moon_pos = np.asarray(moon_pos.to(astropy_units.km))
 			self.eclipse = self._calcEclipse(self.pos, self.sun_pos)
 
 	#pos_list
 	@classmethod
-	def fromListOfPositions(cls, timespan:TimeSpan, positions:np.ndarray[tuple[int, int], np.dtype[np.float_]], astrobodies:bool=True):
-		"""Create an orbit by explicitly specifying the position of the
+	def fromListOfPositions(cls, timespan:TimeSpan,
+									positions:np.ndarray[tuple[int, int], np.dtype[np.float64]],
+									astrobodies:bool=False) -> 'Orbit':
+		"""Create an orbit from a list of positions.
+
+		Creat an obit by explicitly specifying the position of the
 		satellite at each point in time. Useful for simplified test cases; but
 		may lead to unphysical orbits.
 
-		Parameters
-		----------
-		timespan : TimeSpan
-			Timespan over which orbit is to be simulated
+		Args:
+			timespan: Timespan over which orbit is to be simulated
+			positions: Nx3 numpy array of cartesian coordinates of the position of the satellite
+						at each timestamp
+							units: km
+							frame: ECI
+			astrobodies: [Optional] Flag to calculate Sun and Moon positions at timestamps
+							Default is False
 
-		positions: (N,3) np.array
-			Position of the satellite in GCRS at each point in time.
-
-		Returns
-		-------
-		satplot.Orbit
+		Returns:
+			satplot.Orbit
 		"""
 		attr_dct = _createEmptyOrbitAttrDict()
 		if len(positions) != len(timespan):
-			raise ValueError(f'Number of supplied positions does not match timespan length: {len(positions)} =/= {len(timespan)}')
+			raise ValueError(f"Number of supplied positions does not match timespan length: "
+							f"{len(positions)} =/= {len(timespan)}")
 
 		attr_dct['timespan'] = timespan
 		attr_dct['pos'] = positions
@@ -271,17 +334,24 @@ class Orbit():
 
 	#TLE
 	@classmethod
-	def fromTLE(cls, timespan:TimeSpan, tle_path:pathlib.Path, astrobodies:bool=True, unsafe=False):
-		"""Create an orbit from an existing TLE or a list of historical TLEs
+	def fromTLE(cls, timespan:TimeSpan,
+						tle_path:pathlib.Path,
+						astrobodies:bool=True,
+						unsafe:bool=False) -> 'Orbit':
+		"""Create an orbit from an existing TLE or a list of historical TLEs.
 
-		Parameters
-		----------
-		timespan : TimeSpan over which orbit is to be simulated
-		tle_path : path to file containing TLE(s)
+		Args:
+			timespan : TimeSpan over which orbit is to be simulated
+			tle_path : path to file containing TLEs for a satellite
+			astrobodies: [Optional] Flag to calculate Sun and Moon positions at timestamps
+							Default is False
+			unsafe: [Optional] Flag to ignore TLE usage more than 14 days either side of timestamps
+						Optional
+						Default is False
 
-		Returns
+		Returns:
 		-------
-		satplot.Orbit
+			satplot.Orbit
 		"""
 		skyfld_earth_sats = load.tle_file(f'{tle_path}')
 		epochs = np.asarray([a.epoch.utc_datetime() for a in skyfld_earth_sats])
@@ -296,23 +366,27 @@ class Orbit():
 		if timespan.start < tle_dates[0] - dt.timedelta(days=14):
 			logger.error("Timespan begins before provided TLEs (+14 days)")
 			if not unsafe:
-				raise exceptions.OutOfRange("Timespan begins before provided TLEs (+14 days)")
+				raise exceptions.OutOfRangeError("Timespan begins before provided TLEs (+14 days)")
 		elif timespan.start > tle_dates[-1] + dt.timedelta(days=14):
 			logger.error("Timespan begins after provided TLEs (+14 days)")
 			if not unsafe:
-				raise exceptions.OutOfRange("Timespan begins after provided TLEs (+14 days)")
+				raise exceptions.OutOfRangeError("Timespan begins after provided TLEs (+14 days)")
 		elif timespan.end > tle_dates[-1] + dt.timedelta(days=14):
 			logger.error("Timespan ends after provided TLEs (+14 days)")
 			if not unsafe:
-				raise exceptions.OutOfRange("Timespan ends after provided TLEs (+14 days)")
+				raise exceptions.OutOfRangeError("Timespan ends after provided TLEs (+14 days)")
 
 		attr_dct = _createEmptyOrbitAttrDict()
 
 		closest_tle_epochs = _findClosestEpochIndices(np.asarray(tle_dates), timespan[:])
 
 		d = np.hstack((1, np.diff(closest_tle_epochs)))
-		timespan_epoch_trans_idxs = np.hstack((np.where(d!=0)[0],len(timespan))) # timestep idx where TLE epoch changes, append len(timespan) to not require separate loop iteration to handle last element
-		timespan_epoch_trans_tle_idxs = closest_tle_epochs[np.where(d!=0)[0]] # tle_dates idx where TLE epoch changes in timespan
+
+		# timestep idx where TLE epoch changes, append len(timespan)
+		# to not require separate loop iteration to handle last element
+		timespan_epoch_trans_idxs = np.hstack((np.where(d!=0)[0],len(timespan)))
+		# tle_dates idx where TLE epoch changes in timespan
+		timespan_epoch_trans_tle_idxs = closest_tle_epochs[np.where(d!=0)[0]]
 
 		tle_epoch_idxs = []
 		sub_timespans = []
@@ -333,15 +407,15 @@ class Orbit():
 		pos_ecef = ecef[0].km.T
 		vel_ecef = ecef[1].km_per_s.T * 1000
 
-		l, l2 = wgs84.latlon_of(sat_rec)
-		lat = l.degrees
-		lon = l2.degrees
+		skyfld_lat, skyfld_lon = wgs84.latlon_of(sat_rec)
+		lat = skyfld_lat.degrees
+		lon = skyfld_lon.degrees
 		ecc = np.tile(sub_skyfld_earthsat.model.ecco,len(sub_timespan))
 		inc = np.tile(sub_skyfld_earthsat.model.inclo,len(sub_timespan))
 		semi_major = np.tile(sub_skyfld_earthsat.model.a * consts.R_EARTH,len(sub_timespan))
 		raan = np.tile(sub_skyfld_earthsat.model.nodeo,len(sub_timespan))
 		argp = np.tile(sub_skyfld_earthsat.model.argpo,len(sub_timespan))
-		TLE_epochs = np.tile(tle_epoch,len(sub_timespan))
+		TLE_epochs = np.tile(tle_epoch,len(sub_timespan)) 		#noqa: N806
 
 
 		# fill in data for any other sub timespans
@@ -356,15 +430,19 @@ class Orbit():
 			pos_ecef = np.vstack((pos_ecef, ecef[0].km.T))
 			vel_ecef = np.vstack((vel_ecef, ecef[1].km_per_s.T * 1000))
 
-			l, l2 = wgs84.latlon_of(sat_rec)
-			lat = np.concatenate((lat, l.degrees))
-			lon = np.concatenate((lon, l2.degrees))
+			skyfld_lat, skyfld_lon = wgs84.latlon_of(sat_rec)
+			lat = np.concatenate((lat, skyfld_lat.degrees))
+			lon = np.concatenate((lon, skyfld_lon.degrees))
 			ecc = np.concatenate((ecc, np.tile(sub_skyfld_earthsat.model.ecco, len(sub_timespan))))
-			inc = np.concatenate(((inc, np.tile(sub_skyfld_earthsat.model.inclo, len(sub_timespan)))))
-			semi_major = np.concatenate((semi_major, np.tile(sub_skyfld_earthsat.model.a * consts.R_EARTH, len(sub_timespan))))
-			raan = np.concatenate((raan, np.tile(sub_skyfld_earthsat.model.nodeo, len(sub_timespan))))
-			argp = np.concatenate((argp, np.tile(sub_skyfld_earthsat.model.argpo, len(sub_timespan))))
-			TLE_epochs = np.concatenate((TLE_epochs, np.tile(tle_epoch, len(sub_timespan))))
+			inc = np.concatenate((inc,
+									np.tile(sub_skyfld_earthsat.model.inclo, len(sub_timespan))))
+			semi_major = np.concatenate((semi_major,
+											np.tile(sub_skyfld_earthsat.model.a * consts.R_EARTH, len(sub_timespan)))) #noqa:E501
+			raan = np.concatenate((raan,
+									np.tile(sub_skyfld_earthsat.model.nodeo, len(sub_timespan))))
+			argp = np.concatenate((argp,
+									np.tile(sub_skyfld_earthsat.model.argpo, len(sub_timespan))))
+			TLE_epochs = np.concatenate((TLE_epochs, np.tile(tle_epoch, len(sub_timespan)))) 		#noqa: N806
 
 		attr_dct['timespan'] = timespan
 		attr_dct['satcat_id'] = int(skyfld_earth_sats[0].target_name.split('#')[-1].split(' ')[0])
@@ -394,59 +472,75 @@ class Orbit():
 
 	#fake TLE
 	@classmethod
-	def fromPropagatedOrbitalParam(cls, timespan:TimeSpan, a:float=6978, ecc:float=0, inc:float=0, raan:float=0, argp:float=0, mean_nu:float=0, name:str='Fake TLE', astrobodies:bool=True, unsafe:bool=False):
+	def fromPropagatedOrbitalParam(cls, timespan:TimeSpan, 			#noqa: PLR0913
+										a:float=6978,
+										ecc:float=0,
+										inc:float=0,
+										raan:float=0,
+										argp:float=0,
+										mean_nu:float=0,
+										name:str='Fake TLE',
+										astrobodies:bool=True,
+										unsafe:bool=False) -> 'Orbit':
 		"""Create an orbit from orbital parameters, propagated using sgp4.
 
 		Orbits created using this class method will respect gravity corrections such as J4,
 		allowing for semi-analytical sun-synchronous orbits.
 
-		Parameters
-		----------
-		timespan : TimeSpan
-			Timespan over which orbit is to be simulated
-		a : float, optional
-			semi-major axis of the orbit in km (the default is 6978 ~ 600km
-			above the earth.)
-		ecc : float, optional
-			dimensionless number 0 < ecc < 1 (the default is 0, which is a
-			circular orbit)
-		inc : float, optional
-			inclination of orbit in degrees (the default is 0, which represents
-			an orbit around the Earth's equator)
-		raan : float, optional
-			right-ascension of the ascending node (the default is 0)
-		argp : float, optional
-			argument of the perigee in degrees (the default is 0, which
-			represents an orbit with its semimajor axis in the plane of the
-			Earth's equator)
-		mean_nu : float, optional
-			mean anomaly in degrees (the default is 0, which represents an orbit
-			that is beginning at periapsis)
+		Args:
+			timespan: Timespan over which orbit is to be simulated
+			a: [Optional] semi-major axis of the orbit in km
+					Default is 6978 ~ 600km	above the earth.
+			ecc: [Optional] eccentricty, dimensionless number 0 < ecc < 1
+					Default is 0, which is a circular orbit
+			inc: [Optional] inclination of orbit in degrees
+					Default is 0, which represents an orbit around the Earth's equator
+			raan: [Optional] right-ascension of the ascending node
+					Default is 0
+			argp: [Optional] argument of the perigee in degrees
+					Default is 0, which	represents an orbit with its semimajor axis in
+					the plane of the Earth's equator
+			mean_nu: [Optional] mean anomaly in degrees
+					Default is 0, which represents an orbit that is beginning at periapsis
+			name: [Optional] string giving the name of the orbit
+					Default is 'Fake TLE'
+			astrobodies: [Optional] Flag to calculate Sun and Moon positions at timestamps
+					Default is False
+			unsafe: [Optional] Flag to ignore semi-major axis inside Earth's radius
+					Default is False
 
-		Returns
-		-------
-		satplot.Orbit
+		Returns:
+			satplot.Orbit
 		"""
-
 		if a < consts.R_EARTH + consts.EARTH_MIN_ALT:
-			logger.error("Semimajor axis, {}, is too close to Earth".format(a))
+			logger.error("Semimajor axis, %s, is too close to Earth", a)
 			if not unsafe:
-				raise exceptions.OutOfRange("Semimajor axis, {}, is too close to Earth".format(a))
+				raise exceptions.OutOfRangeError(f"Semimajor axis, {a}, is too close to Earth")
+
 		if ecc > 1 or ecc < 0:
-			logger.error("Eccentricity, {}, is non circular or eliptical".format(ecc))
-			raise exceptions.OutOfRange("Eccentricity, {}, is non circular or eliptical".format(ecc))
-		if inc > 180 or inc < -180:
-			logger.error("Inclination, {}, is out of range, should be -180 < inc < 180".format(inc))
-			raise exceptions.OutOfRange("Inclination, {}, is out of range, should be -180 < inc < 180".format(inc))
-		if raan > 360 or raan < 0:
-			logger.error("RAAN, {}, is out of range, should be 0 < inc < 360".format(inc))
-			raise exceptions.OutOfRange("RAAN, {}, is out of range, should be 0 < inc < 360".format(inc))
-		if argp > 360 or argp < 0:
-			logger.error("Argument of periapsis, {}, is out of range, should be 0 < argp < 360".format(inc))
-			raise exceptions.OutOfRange("Argument of periapsis, {}, is out of range, should be 0 < argp < 360".format(inc))
-		if mean_nu > 360 or mean_nu < 0:
-			logger.error("Mean anomaly, {}, is out of range, should be 0 < mean_nu < 360".format(inc))
-			raise exceptions.OutOfRange("Mean anomaly, {}, is out of range, should be 0 < mean_nu < 360".format(inc))
+			logger.error("Eccentricity, %s, is non circular or eliptical", ecc)
+			raise exceptions.OutOfRangeError(f"Eccentricity, {ecc}, is non circular or eliptical")
+
+		if inc > 180 or inc < -180: 			#noqa: PLR2004
+			logger.error("Inclination, %s, is out of range, should be -180 < inc < 180", inc)
+			raise exceptions.OutOfRangeError(f"Inclination, {inc}, is out of range, "
+										f"should be -180 < inc < 180")
+
+		if raan > 360 or raan < 0: 				#noqa: PLR2004
+			logger.error("RAAN, %s, is out of range, should be 0 < inc < 360", raan)
+			raise exceptions.OutOfRangeError(f"RAAN, {raan}, is out of range, "
+												f"should be 0 < inc < 360")
+
+		if argp > 360 or argp < 0: 				#noqa: PLR2004
+			logger.error("Argument of periapsis, %s, is out of range, "
+						"should be 0 < argp < 360", inc)
+			raise exceptions.OutOfRangeError(f"Argument of periapsis, {inc}, is out of range, "
+										f"should be 0 < argp < 360")
+
+		if mean_nu > 360 or mean_nu < 0: 		#noqa: PLR2004
+			logger.error("Mean anomaly, %s, is out of range, should be 0 < mean_nu < 360", mean_nu)
+			raise exceptions.OutOfRangeError(f"Mean anomaly, {mean_nu}, is out of range, "
+										f"should be 0 < mean_nu < 360")
 
 		attr_dct = _createEmptyOrbitAttrDict()
 
@@ -456,19 +550,19 @@ class Orbit():
 		satrec = Satrec()
 		mean_motion = orbit_u.calcMeanMotion(a * 1e3)
 
-		satrec.sgp4init(WGS72,		  # gravity model  # noqa: E128
-						'i',  # mode  # noqa: E128
-						1,  # satnum  # noqa: E128
-						t0_epoch,  # mode  # noqa: E128
-						0,  # bstar [/earth radii] # noqa: E128
-						0,  # ndot [revs/day] # noqa: E128
-						0,  # nddot [revs/day^3]  # noqa: E128
-						ecc,  # ecc  # noqa: E128
-						argp,  # arg perigee [radians] # noqa: E128
-						inc,  # inclination [radians] # noqa: E128
-						mean_nu,  # mean anomaly [radians] # noqa: E128
-						mean_motion * 60,  # mean motion [rad/min]  # noqa: E128
-						raan)  # raan [radians] # noqa: E126, E128
+		satrec.sgp4init(WGS72,		  # gravity model
+						'i',  # mode
+						1,  # satnum
+						t0_epoch,  # mode
+						0,  # bstar [/earth radii]
+						0,  # ndot [revs/day]
+						0,  # nddot [revs/day^3]
+						ecc,  # ecc
+						argp,  # arg perigee [radians]
+						inc,  # inclination [radians]
+						mean_nu,  # mean anomaly [radians]
+						mean_motion * 60,  # mean motion [rad/min]
+						raan)  # raan [radians]
 
 		skyfld_earthsat = EarthSatellite.from_satrec(satrec, skyfld_ts)
 
@@ -479,7 +573,8 @@ class Orbit():
 			pos[ii, :] = skyfld_earthsat.at(skyfld_ts.utc(timestep)).position.km
 			vel[ii, :] = skyfld_earthsat.at(skyfld_ts.utc(timestep)).velocity.km_per_s * 1000
 
-		# TODO: calculate ecef and lat,lon values. satrec doesn't have a frame_xyz_and_velocity in this case
+		# TODO: calculate ecef and lat,lon values.
+		# TODO: satrec doesn't have a frame_xyz_and_velocity in this case
 
 		period = 2 * np.pi / skyfld_earthsat.model.no_kozai * 60
 		period_steps = int(period / timespan.time_step.total_seconds())
@@ -504,37 +599,50 @@ class Orbit():
 
 	#analytical
 	@classmethod
-	def fromAnalyticalOrbitalParam(cls, timespan:TimeSpan, body:str='Earth', a:float=6978, ecc:float=0, inc:float=0, raan:float=0, argp:float=0, mean_nu:float=0, name:str='Analytical', astrobodies:bool=True, unsafe:bool=False):
-		"""Create an orbit from orbital parameters
+	def fromAnalyticalOrbitalParam(cls, timespan:TimeSpan, 					#noqa: C901, PLR0913
+											body:str='Earth',
+											a:float=6978,
+											ecc:float=0,
+											inc:float=0,
+											raan:float=0,
+											argp:float=0,
+											mean_nu:float=0,
+											name:str='Analytical',
+											astrobodies:bool=True,
+											unsafe:bool=False) -> 'Orbit':
+		"""Create an analytical orbit defined by orbital parameters.
 
-		Parameters
-		----------
-		timespan : TimeSpan
-			Timespan over which orbit is to be simulated
-		body : str, optional
-			Central body for the satellite: ['Earth', 'Moon', 'Mars', 'Sun'] (the default is 'Earth')
-		a : float, optional
-			semi-major axis of the orbit in km (the default is 6978 ~ 600km above the earth.)
-		ecc : float, optional
-			dimensionless number 0 < ecc < 1 (the default is 0, which is a circular orbit)
-		inc : float, optional
-			inclination of orbit in degrees (the default is 0, which represents
-			an orbit around the Earth's equator)
-		raan : float, optional
-			right-ascension of the ascending node (the default is 0)
-		argp : float, optional
-			argument of the perigee in degrees (the default is 0, which
-			represents an orbit with its semimajor axis in the plane of the
-			Earth's equator)
-		mean_nu : float, optional
-			mean anomaly in degrees (the default is 0, which represents an orbit
-			that is beginning at periapsis)
+		Orbits created using this class method will NOT respect gravity corrections such as J4,
+		and as such sun-synchronous orbit are not possible.
 
-		Returns
-		-------
-		satplot.Orbit
+		Args:
+			timespan: Timespan over which orbit is to be simulated
+			body: [Optional] string indicating around what body the satellite orbits,
+					Default is 'Earth'
+					Options are ['Earth','Sun','Mars','Moon']
+			a: [Optional] semi-major axis of the orbit in km
+					Default is 6978 ~ 600km	above the earth.
+			ecc: [Optional] eccentricty, dimensionless number 0 < ecc < 1
+					Default is 0, which is a circular orbit
+			inc: [Optional] inclination of orbit in degrees
+					Default is 0, which represents an orbit around the Earth's equator
+			raan: [Optional] right-ascension of the ascending node
+					Default is 0
+			argp: [Optional] argument of the perigee in degrees
+					Default is 0, which	represents an orbit with its semimajor axis in
+					the plane of the Earth's equator
+			mean_nu: [Optional] mean anomaly in degrees
+					Default is 0, which represents an orbit that is beginning at periapsis
+			name: [Optional] string giving the name of the orbit
+					Default is 'Analytical'
+			astrobodies: [Optional] Flag to calculate Sun and Moon positions at timestamps
+					Default is False
+			unsafe: [Optional] Flag to ignore semi-major axis inside Earth's radius
+					Default is False
+
+		Returns:
+			satplot.Orbit
 		"""
-
 		if body.upper() == 'EARTH':
 			central_body = Earth
 			min_a = consts.R_EARTH + consts.EARTH_MIN_ALT
@@ -548,28 +656,39 @@ class Orbit():
 			central_body = Moon
 			min_a = consts.R_MOON + consts.MOON_MIN_ALT
 		else:
-			logger.error("Invalid central body {}. Valid options are Earth, Sun, Mars, Moon".format(body))
-			raise ValueError("Invalid central body {}.".format(body))
+			logger.error("Invalid central body %s. Valid options are Earth, Sun, Mars, Moon", body)
+			raise ValueError(f"Invalid central body {body}.")
 
 		if a < min_a:
-			logger.error("Semimajor axis, {}, is too close to the central body, {}".format(a, body.upper()))
+			logger.error("Semimajor axis, %s, is too close to the central body, {body.upper()}", a)
 			if not unsafe:
-				raise exceptions.OutOfRange("Semimajor axis, {}, is too close to the central body, {}".format(a, body.upper()))
+				raise exceptions.OutOfRangeError(f"Semimajor axis, {a}, is too close "
+											f"to the central body, {body.upper()}")
+
 		if ecc > 1 or ecc < 0:
-			logger.error("Eccentricity, {}, is non circular or eliptical".format(ecc))
-			raise exceptions.OutOfRange("Eccentricity, {}, is non circular or eliptical".format(ecc))
-		if inc > 180 or inc < -180:
-			logger.error("Inclination, {}, is out of range, should be -180 < inc < 180".format(inc))
-			raise exceptions.OutOfRange("Inclination, {}, is out of range, should be -180 < inc < 180".format(inc))
-		if raan > 360 or raan < 0:
-			logger.error("RAAN, {}, is out of range, should be 0 < inc < 360".format(inc))
-			raise exceptions.OutOfRange("RAAN, {}, is out of range, should be 0 < inc < 360".format(inc))
-		if argp > 360 or argp < 0:
-			logger.error("Argument of periapsis, {}, is out of range, should be 0 < argp < 360".format(inc))
-			raise exceptions.OutOfRange("Argument of periapsis, {}, is out of range, should be 0 < argp < 360".format(inc))
-		if mean_nu > 360 or mean_nu < 0:
-			logger.error("Mean anomaly, {}, is out of range, should be 0 < mean_nu < 360".format(inc))
-			raise exceptions.OutOfRange("Mean anomaly, {}, is out of range, should be 0 < mean_nu < 360".format(inc))
+			logger.error("Eccentricity, %s, is non circular or eliptical", ecc)
+			raise exceptions.OutOfRangeError(f"Eccentricity, {ecc}, is non circular or eliptical")
+
+		if inc > 180 or inc < -180: 			#noqa: PLR2004
+			logger.error("Inclination, %s, is out of range, should be -180 < inc < 180", inc)
+			raise exceptions.OutOfRangeError(f"Inclination, {inc}, is out of range, "
+										f"should be -180 < inc < 180")
+
+		if raan > 360 or raan < 0: 				#noqa: PLR2004
+			logger.error("RAAN, %s, is out of range, should be 0 < inc < 360", inc)
+			raise exceptions.OutOfRangeError(f"RAAN, {inc}, is out of range, "
+												f"should be 0 < inc < 360")
+
+		if argp > 360 or argp < 0: 				#noqa: PLR2004
+			logger.error("Argument of periapsis, %s, is out of range, "
+							"should be 0 < argp < 360", raan)
+			raise exceptions.OutOfRangeError(f"Argument of periapsis, {raan}, is out of "
+										f"range, should be 0 < argp < 360")
+
+		if mean_nu > 360 or mean_nu < 0: 		#noqa: PLR2004
+			logger.error("Mean anomaly, %s, is out of range, should be 0 < mean_nu < 360", mean_nu)
+			raise exceptions.OutOfRangeError(f"Mean anomaly, {mean_nu}, is out of range, "
+										f"should be 0 < mean_nu < 360")
 
 		attr_dct = _createEmptyOrbitAttrDict()
 
@@ -586,8 +705,8 @@ class Orbit():
 		logger.info("Creating ephemeris for orbit, using timespan")
 		ephem = Ephem.from_orbit(orb, timespan.asAstropy())
 
-		pos = np.asarray(ephem.rv()[0], dtype=np.float_)
-		vel = np.asarray(ephem.rv()[1], dtype=np.float_) * 1000
+		pos = np.asarray(ephem.rv()[0], dtype=np.float64)
+		vel = np.asarray(ephem.rv()[1], dtype=np.float64) * 1000
 
 		period = orb.period.unit.in_units('s') * orb.period.value
 		period_steps = int(period / timespan.time_step.total_seconds())
@@ -612,13 +731,32 @@ class Orbit():
 
 	@classmethod
 	def fromDummyConstantPosition(cls, timespan:TimeSpan,
-							pos:tuple[float,float,float]|np.ndarray[tuple[int],np.dtype[np.float_]],
-							sun_pos:tuple[float,float,float]|np.ndarray[tuple[int],np.dtype[np.float_]]|None=None,
-							moon_pos:tuple[float,float,float]|np.ndarray[tuple[int],np.dtype[np.float_]]|None=None):
-		'''
-		creates an empty orbit with the motionless at the origin and the sun at +z
-		useful for testing where an orbit is needed independent of any real ephemeris data
-		'''
+							pos:tuple[float,float,float]|np.ndarray[tuple[int],np.dtype[np.float64]],
+							sun_pos:tuple[float,float,float]|np.ndarray[tuple[int],np.dtype[np.float64]]|None=None,
+							moon_pos:tuple[float,float,float]|np.ndarray[tuple[int],np.dtype[np.float64]]|None=None) -> 'Orbit': 	#noqa: E501
+		"""Creates an static orbit for testing.
+
+		Satellite position is defined by pos, while sun and moon positions are optional,
+		but can also be specified.
+
+		Args:
+			timespan: Timespan over which orbit is to be simulated
+			pos: Nx3 numpy array of cartesian coordinates of the position of the satellite
+				at each timestamp
+					units: km
+					frame: ECI
+			sun_pos: [Optional] Nx3 numpy array of cartesian coordinates of the position of the Sun
+					at each timestamp
+						units: km
+						frame: ECI
+			moon_pos: [Optional] Nx3 numpy array of cartesian coordinates of the position of the
+						Moon at each timestamp
+							units: km
+							frame: ECI
+
+		Returns:
+			satplot.Orbit
+		"""
 		attr_dct = _createEmptyOrbitAttrDict()
 		attr_dct['timespan'] = timespan
 		attr_dct['name'] = 'dummy_const_pos'
@@ -632,41 +770,39 @@ class Orbit():
 			obj.moon_pos = np.full((len(timespan), 3), moon_pos)
 		return obj
 
-	@classmethod
-	def load(cls, file):
-		with open(file, 'rb') as fp:
-			logger.info(f'Loading orbit file from {file}')
-			return pickle.load(fp)
-
-	def getPosition(self, search_time):
-		'''Return the position at the specified or closest time
+	def getPosition(self, search_time:dt.datetime|astropyTime) \
+							-> np.ndarray[tuple[int],np.dtype[np.float64]]:
+		"""Return the position at the specified or closest time.
 
 		Args:
 			search_time: the timestamp to search for
 
 		Returns:
-			position (km)
+			position
 
 		Raises:
-			ValueError: Raised 'search_time' is not a valid type
-		'''
+			TypeError: Raised 'search_time' is not a valid type
+		"""
 		return self._getAttributeClosestTime(self.pos, search_time)
 
-	def getVelocity(self, search_time:dt.datetime|astropyTime) -> np.ndarray[tuple[int], np.dtype[np.float_]]:
-		'''Return the velocity at the specified or closest time
+	def getVelocity(self, search_time:dt.datetime|astropyTime) \
+							-> np.ndarray[tuple[int], np.dtype[np.float64]]:
+		"""Return the velocity at the specified or closest time.
 
 		Args:
 			search_time: the timestamp to search for
 
 		Returns:
-			velocity (m/s)
+			velocity
 
 		Raises:
-			ValueError: Raised 'search_time' is not a valid type
-		'''
+			TypeError: Raised 'search_time' is not a valid type
+		"""
 		return self._getAttributeClosestTime(self.vel, search_time)
 
-	def _getAttributeClosestTime(self, attr:Any, search_time:dt.datetime|astropyTime) -> np.ndarray[tuple[int], np.dtype[np.float_]]:
+	def _getAttributeClosestTime(self, attr:np.ndarray[np.dtype[np.float64]],
+										search_time:dt.datetime|astropyTime)\
+										-> np.ndarray[tuple[int], np.dtype[np.float64]]:
 
 		if isinstance(search_time, dt.datetime):
 			_, closest_idx = self.timespan.getClosest(search_time)
@@ -675,29 +811,28 @@ class Orbit():
 			_, closest_idx = self.timespan.getClosest(search_dt)
 		else:
 			logger.error("%s cannot be used to index %s", search_time, attr)
-			raise ValueError(f"{search_time} cannot be used to index {attr}")
+			raise TypeError(f"{search_time} cannot be used to index {attr}")
 
 		return attr[closest_idx, :]
 
-	def _calcEclipse(self, pos, sun):
+	def _calcEclipse(self, pos:np.ndarray[tuple[int,int],np.dtype[np.float64]],
+							sun:np.ndarray[tuple[int,int],np.dtype[np.float64]])\
+							-> np.ndarray[tuple[int],np.dtype[np.bool_]]:
 		earth_ang_size = np.arctan(consts.R_EARTH/consts.AU)
-		neg_S_norm = np.linalg.norm(-sun,axis=1)
-		neg_S_unit = -sun/neg_S_norm[:,None]
-		p_neg_S = pos-sun
-		p_neg_S_norm = np.linalg.norm(p_neg_S,axis=1)
-		p_neg_S_unit = p_neg_S/p_neg_S_norm[:,None]
-		earth_sat_ang_sep = np.arccos(np.sum(neg_S_unit*p_neg_S_unit, axis=1))
+		neg_sun_norm = np.linalg.norm(-sun,axis=1)
+		neg_sun_unit = -sun/neg_sun_norm[:,None]
+		pos_neg_sun = pos-sun
+		pos_neg_sun_norm = np.linalg.norm(pos_neg_sun,axis=1)
+		pos_neg_sun_unit = pos_neg_sun/pos_neg_sun_norm[:,None]
+		earth_sat_ang_sep = np.arccos(np.sum(neg_sun_unit*pos_neg_sun_unit, axis=1))
 		sunlit_angsep_truth = earth_sat_ang_sep > earth_ang_size
-		sunlit_dist_truth = p_neg_S_norm < neg_S_norm
+		sunlit_dist_truth = pos_neg_sun_norm < neg_sun_norm
 		sunlit = np.logical_or(sunlit_angsep_truth, sunlit_dist_truth)
 
 		return np.logical_not(sunlit)
 
-	def serialise(self):
-		raise NotImplementedError
 
-
-def _findClosestEpochIndices(target, values):
+def _findClosestEpochIndices(target:list[float], values:float) -> list[int]:
 	right_idx = np.searchsorted(target, values)
 	left_idx = right_idx - 1
 	# replace any idx greater than len of target with last idx in target

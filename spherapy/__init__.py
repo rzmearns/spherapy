@@ -1,8 +1,10 @@
-import os
 import configparser
-from spherapy.util import credentials
+import os
 import pathlib
+
 import platformdirs
+
+from spherapy.util import credentials
 
 service_name = "spherapy"
 service_author = "MSL"
@@ -11,7 +13,9 @@ version = "0.0.2"
 config_dir_str = os.getenv('SPHERAPY_CONFIG_DIR')
 if config_dir_str is None:
 	use_config_file = False
-	config_dir = pathlib.Path(platformdirs.user_config_dir(appname=service_name, version=version, ensure_exists=True))
+	config_dir = pathlib.Path(platformdirs.user_config_dir(appname=service_name,
+															version=version,
+															ensure_exists=True))
 else:
 	use_config_file = True
 	config_dir = pathlib.Path(config_dir_str)
@@ -34,11 +38,13 @@ else:
 	_temp_dir = pathlib.Path(_dir_str)
 	if _dir_str == '':
 		# TLE dir not set in config file
-		_data_dir = pathlib.Path(platformdirs.user_data_dir(appname=service_name, ensure_exists=True))
+		_data_dir = pathlib.Path(platformdirs.user_data_dir(appname=service_name,
+															ensure_exists=True))
 		tle_dir = _data_dir.joinpath('TLEs')
 	elif _temp_dir.is_absolute():
 		tle_dir = _temp_dir
-	else:
+	else: 						# noqa: PLR5501
+		# _temp_dir is relative
 		if config_dir.is_dir():
 			tle_dir = config_dir.joinpath(config['paths'].get('TLE_path'))
 		else:
