@@ -532,7 +532,7 @@ class TestOrbit:
 		# needs to be earlier than 2100 for external library compatibility
 		post_end_t = timespan.TimeSpan(dt.datetime(2005,6,1),'365d','34310d')
 
-		with check.raises(exceptions.OutOfRange):
+		with check.raises(exceptions.OutOfRangeError):
 			orbit.Orbit.fromTLE(prior_start_t, pathlib.Path(self.ISS_tle_path))
 			orbit.Orbit.fromTLE(post_start_t, pathlib.Path(self.ISS_tle_path))
 			orbit.Orbit.fromTLE(post_end_t, pathlib.Path(self.ISS_tle_path))
@@ -541,7 +541,7 @@ class TestOrbit:
 		orbit.Orbit.fromTLE(post_start_t, pathlib.Path(self.ISS_tle_path), unsafe=True)
 		orbit.Orbit.fromTLE(post_end_t, pathlib.Path(self.ISS_tle_path), unsafe=True)
 
-		with check.raises(exceptions.OutOfRange):
+		with check.raises(exceptions.OutOfRangeError):
 			orbit.Orbit.fromPropagatedOrbitalParam(self.t, a=(6378 - 600), ecc=0, inc=45, raan=0, argp=0, mean_nu=0)
 			orbit.Orbit.fromPropagatedOrbitalParam(self.t, a=(6378 - 600), ecc=0, inc=45, raan=0, argp=0, mean_nu=0)
 
