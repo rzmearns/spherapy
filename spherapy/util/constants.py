@@ -1,10 +1,6 @@
-import astropy.constants as astroconst
-'''
-A list of useful constants!
+"""Namespace of useful orbital constants."""
 
-Created by Benjamin Metha
-Last updated: September 11 2018
-'''
+import astropy.constants as astroconst
 
 # ######### BODY CONSTANTS ##########
 M_EARTH = astroconst.M_earth.value 	# Mass of earth (Kg)
