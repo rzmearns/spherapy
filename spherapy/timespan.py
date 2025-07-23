@@ -5,7 +5,7 @@ This module provides:
 """
 import datetime as dt
 import logging
-from typing import Self
+from typing import Self, cast
 
 from astropy.time import Time as astropyTime
 from dateutil.relativedelta import relativedelta
@@ -66,7 +66,7 @@ class TimeSpan:
 			t0 = t0.replace(tzinfo=dt.timezone.utc)
 
 		self.start = t0
-		self.time_step = self._parseTimestep(timestep)
+		self.time_step:None|dt.timedelta = self._parseTimestep(timestep)
 		self.end = self._parseTimeperiod(t0, timeperiod)
 		self.time_period = self.end - self.start
 
@@ -242,7 +242,12 @@ class TimeSpan:
 		diff = self._timearr - t_search
 		out = np.abs(np.vectorize(lambda x: x.total_seconds())(diff))
 		res_index = int(np.argmin(out))
-		return self.asDatetime(res_index), res_index
+		res_datetime = self.asDatetime(res_index)
+
+		# res_datetime must be a dt.datetime since res_index is an int, so cast
+		res_datetime = cast("dt.datetime", res_datetime)
+
+		return res_datetime, res_index
 
 	def _parseTimeperiod(self, t0:dt.datetime, timeperiod:str) -> dt.datetime:
 		last_idx = 0
