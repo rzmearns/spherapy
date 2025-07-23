@@ -27,11 +27,12 @@ def updateTLEs(sat_id_list:list[int]) -> list[int]:
 		sat_id_list: list of satcat ids to fetch
 
 	Returns:
-		list[int]: [description]
+		list: list of satcat ids successfully fetched
 
 	Raises:
-		list of satcat ids successfully fetched
+		TimeoutError
 	"""
+	logger.info("Using CELESTRAK to update TLEs")
 	modified_list = []
 	for sat_id in sat_id_list:
 		url = f'https://celestrak.org/NORAD/elements/gp.php?CATNR={sat_id}'
@@ -53,7 +54,7 @@ def updateTLEs(sat_id_list:list[int]) -> list[int]:
 
 		if retry_num == MAX_RETRIES and fetch_successful:
 			logger.error('Could not fetch celestrak information for sat_id: %s', sat_id)
-			raise ValueError(f'Could not fetch celestrak information for sat_id: {sat_id}')
+			raise TimeoutError(f'Could not fetch celestrak information for sat_id: {sat_id}')
 
 	return modified_list
 
