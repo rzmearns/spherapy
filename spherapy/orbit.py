@@ -64,7 +64,7 @@ class OrbitAttrDict(TypedDict):
 	satcat_id: None|int
 	gen_type: None|str
 	timespan: None|TimeSpan
-	TLE_epochs: None|np.ndarray[tuple[int], np.dtype[dt.datetime]]
+	TLE_epochs: None|np.ndarray[tuple[int], np.dtype[np.datetime64]]
 	pos: None|np.ndarray[tuple[int,int], np.dtype[np.float64]]
 	pos_ecef: None|np.ndarray[tuple[int,int], np.dtype[np.float64]]
 	vel_ecef: None|np.ndarray[tuple[int,int], np.dtype[np.float64]]
@@ -111,7 +111,7 @@ def _createEmptyOrbitAttrDict() -> OrbitAttrDict:
 	'argp':None,
 	})
 
-def _validateTypedDict(obj:object, typ: type) -> bool:
+def _validateOrbitAttrDict(obj:OrbitAttrDict, typ: type) -> bool:
 	"""Validates all fields of a TypedDict have been instantiated, and are of correct type.
 
 	Raises:
@@ -149,9 +149,9 @@ def _NoneValidator(obj:object, check_type:type) -> bool:  #noqa: ARG001
 
 def _genericValidator(obj:object, check_type:type|types.GenericAlias) -> bool:
 	if type(check_type) is types.GenericAlias:
-		if isinstance(obj, check_type.__origin__):
+		if type(obj) is check_type.__origin__:
 			return True
-	elif isinstance(obj, check_type):
+	elif type(obj) is check_type:
 			return True
 	return False
 
@@ -225,7 +225,7 @@ class Orbit:
 			Orbit.fromAnalyticalOrbitalParam()
 		"""
 		# Should always be called from a class method, spit error if not.
-		if not _validateTypedDict(data, OrbitAttrDict):
+		if not _validateOrbitAttrDict(data, OrbitAttrDict):
 			logger.error("Orbit() should not be called directly, "
 						"use one of the fromXX constructors.")
 			raise ValueError("Orbit() should not be called directly, "
@@ -461,7 +461,7 @@ class Orbit:
 		attr_dct['raan'] = raan
 		attr_dct['argp'] = argp
 		attr_dct['TLE_epochs'] = TLE_epochs
-		attr_dct['period'] = 2 * np.pi / sub_skyfld_earthsat.model.no_kozai * 60
+		attr_dct['period'] = float(2 * np.pi / sub_skyfld_earthsat.model.no_kozai * 60)
 		if timespan.time_step is not None:
 			attr_dct['period_steps'] = int(attr_dct['period'] / timespan.time_step.total_seconds())
 		else:
@@ -576,7 +576,7 @@ class Orbit:
 		# TODO: calculate ecef and lat,lon values.
 		# TODO: satrec doesn't have a frame_xyz_and_velocity in this case
 
-		period = 2 * np.pi / skyfld_earthsat.model.no_kozai * 60
+		period = float(2 * np.pi / skyfld_earthsat.model.no_kozai * 60)
 		period_steps = int(period / timespan.time_step.total_seconds())
 
 		attr_dct['name'] = name
@@ -708,7 +708,7 @@ class Orbit:
 		pos = np.asarray(ephem.rv()[0], dtype=np.float64)
 		vel = np.asarray(ephem.rv()[1], dtype=np.float64) * 1000
 
-		period = orb.period.unit.in_units('s') * orb.period.value
+		period = float(orb.period.unit.in_units('s') * orb.period.value)
 		period_steps = int(period / timespan.time_step.total_seconds())
 
 		attr_dct['name'] = name
