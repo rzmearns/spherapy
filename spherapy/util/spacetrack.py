@@ -8,7 +8,6 @@ import datetime as dt
 import logging
 import pathlib
 
-from progressbar import progressbar
 import spacetrack as sp
 
 import spherapy
@@ -36,15 +35,8 @@ class _TLEGetter:
 		self.modified_ids = []
 		try:
 			self.stc = sp.SpaceTrackClient(self.username, self.password)
-			ii = 0
-			for sat_id in progressbar(sat_id_list):
-				pc = ii/len(sat_id_list)*100
-				bar_str = int(pc)*'='
-				space_str = (100-int(pc))*'  '
-				print(f'Loading {pc:.2f}% ({ii} of {len(sat_id_list)}) |{bar_str}{space_str}|\r')
-
-				print(f"{sat_id=}")
-
+			for sat_id in sat_id_list:
+				logger.info("Trying to update TLEs for %s", sat_id)
 				if not self.checkTLEFileExists(sat_id) or self.getNumPastTLEs(sat_id) == 0:
 					res = self.fetchAll(sat_id)
 					if res is not None:
@@ -53,7 +45,7 @@ class _TLEGetter:
 					res = self.fetchLatest(sat_id)
 					if res is not None:
 						self.modified_ids.append(res)
-				ii+=1
+
 		except sp.AuthenticationError:
 			raise InvalidCredentialsError('Username and password are incorrect!') from sp.AuthenticationError 	#noqa: E501
 
