@@ -1,33 +1,38 @@
-import pathlib
-import logging
-import spacetrack as sp
-import spherapy
+"""Functions to fetch TLEs from Spacetrack.
+
+Attributes:
+	MAX_RETRIES: number of times to try and reach Spacetrack.
+"""
+
 import datetime as dt
-import spherapy.util.epoch_u as epoch_u
-import sys
-import os
+import logging
+import pathlib
+
 from progressbar import progressbar
-import json
+import spacetrack as sp
+
+import spherapy
+from spherapy.util import epoch_u
 
 MAX_RETRIES=3
-TIMEOUT=60
 
 logger = logging.getLogger(__name__)
 
-class TLEGetter:
-	def __init__(self, sat_id_list:list[int], user:str=None, passwd:str=None):
+class _TLEGetter:
+	"""Container around python spacetrack library."""
+	def __init__(self, sat_id_list:list[int], user:None|str=None, passwd:None|str=None):
 		# initialise the client
-		if user == None:
+		if user is None:
 			self.username = spherapy.spacetrack_credentials['user']
 		else:
 			self.username = user
-		if passwd == None:			
+		if passwd is None:
 			self.password = spherapy.spacetrack_credentials['passwd']
 		else:
 			self.password = passwd
 		if self.username is None or self.password is None:
-			raise InvalidCredentials('No Spacetrack Credentials have been entered')		
-		
+			raise InvalidCredentialsError('No Spacetrack Credentials have been entered')
+
 		self.modified_ids = []
 		try:
 			self.stc = sp.SpaceTrackClient(self.username, self.password)
@@ -50,7 +55,7 @@ class TLEGetter:
 						self.modified_ids.append(res)
 				ii+=1
 		except sp.AuthenticationError:
-			raise InvalidCredentials('Username and password are incorrect!')
+			raise InvalidCredentialsError('Username and password are incorrect!') from sp.AuthenticationError 	#noqa: E501
 
 	def getModifiedIDs(self) -> list[int]:
 		return self.modified_ids
@@ -59,6 +64,15 @@ class TLEGetter:
 		return getTLEFilePath(sat_id).exists()
 
 	def fetchAll(self, sat_id:int) -> int|None:
+		"""Fetch all TLEs for sat_id.
+
+		Args:
+			sat_id: satcat id to fetch
+
+		Returns:
+			sat_id if succesfully fetched
+			None if couldn't fetch
+		"""
 		attempt_number = 0
 		while attempt_number < MAX_RETRIES:
 			try:
@@ -73,22 +87,32 @@ class TLEGetter:
 				attempt_number += 1
 
 		if attempt_number == MAX_RETRIES:
-			logger.error("Could not fetch All TLEs for sat %s: failed %s times.",sat_id, attempt_number)
+			logger.error("Could not fetch All TLEs for sat %s: failed %s times.",
+							sat_id, attempt_number)
 			return None
-		
+
 		return sat_id
 
 	def getNumPastTLEs(self, sat_id:int) -> int:
-		with open(getTLEFilePath(sat_id), 'r') as fp:
+		"""Retrieve number of TLEs stored for sat_id."""
+		with getTLEFilePath(sat_id).open('r') as fp:
 			lines = fp.readlines()
 		return int(len(lines)/3)
 
 	def fetchLatest(self, sat_id:int) -> int|None:
+		"""Fetch the latest TLEs for sat_id, and append them to the TLE file.
+
+		Args:
+			sat_id: satcat id to fetch
+
+		Returns:
+			sat_id if succesfully fetched
+			None if couldn't fetch
+		"""
 		attempt_number = 0
 		while attempt_number < MAX_RETRIES:
 			try:
 				_, days_since_last_epoch = self._findLocalLastEpoch(sat_id)
-				print(f'{days_since_last_epoch=}')
 				if days_since_last_epoch > 0.0:
 					opts = self._calcRequestPartialOptions(sat_id)
 					logger.info("Requesting TLEs from spacetrack with following options: %s", opts)
@@ -97,30 +121,25 @@ class TLEGetter:
 					tle_dict_list = self._dictify3LEs(resp_lines)
 					self._writeTLEsToFile(sat_id, tle_dict_list)
 				break
-			except TimeoutError as e:
-				print(e)
+			except TimeoutError:
 				attempt_number += 1
 		if attempt_number == MAX_RETRIES:
-			print(f"Could not fetch the latest TLEs for sat {sat_id}: failed {attempt_number} times.", file=sys.stderr)
-			return None
+			logger.error("Could not fetch the latest TLEs for sat %s: failed %s times.",
+							sat_id, attempt_number)
+			raise TimeoutError(f"Could not fetch the latest TLEs for sat {sat_id}: "
+								f"failed {attempt_number} times.")
 
 		return sat_id
 
 	def _findLocalLastEpoch(self, sat_id:int) -> tuple[float, float]:
-		"""Find the last TLE epoch in a TLE file"""
+		"""Find the last TLE epoch in a TLE file."""
 		# get penultimate and ultimate epochs
 		with getTLEFilePath(sat_id).open('r') as fp:
 			lines = fp.readlines()
 		while lines[-1] == '':
 			lines = lines[:-1]
 		last_epoch_line = lines[-2]
-		# pe_line = lines[-5]
-		# pe_datetime = epoch_u.epoch2datetime(float(pe_line.split()[3]))
-		try:
-			last_epoch = float(last_epoch_line.split()[3])
-		except IndexError:
-			print(last_epoch_line)
-			raise IndexError
+		last_epoch = float(last_epoch_line.split()[3])
 
 		last_epoch_datetime = epoch_u.epoch2datetime(last_epoch)
 		delta = dt.datetime.now(tz=dt.timezone.utc) - last_epoch_datetime
@@ -128,8 +147,7 @@ class TLEGetter:
 		return last_epoch, delta.days
 
 	def _calcRequestAllOptions(self, sat_id:int) -> dict[str, str|int]:
-		"""Format spacetrack library request options. Request all TLEs"""
-
+		"""Format spacetrack library request options. Request all TLEs."""
 		request_options = {}
 		request_options['norad_cat_id'] = sat_id
 		request_options['orderby'] = 'epoch asc'
@@ -140,7 +158,7 @@ class TLEGetter:
 		return request_options
 
 	def _calcRequestPartialOptions(self, sat_id:int) -> dict[str, str|int]:
-		"""Format spacetrack library request options. Request all TLEs since last epoch"""
+		"""Format spacetrack library request options. Request all TLEs since last epoch."""
 		_, days_since_last_epoch = self._findLocalLastEpoch(sat_id)
 
 		request_options = {}
@@ -154,14 +172,11 @@ class TLEGetter:
 		return request_options
 
 	def _writeTLEsToFile(self, sat_id:int, tle_dict_list:list[dict[int,dict[str,list[str]|str]]]):
-		"""Append response to TLE file"""
+		"""Append TLEs to TLE file."""
 		last_epoch, _ = self._findLocalLastEpoch(sat_id)
 		first_new_idx = None
 		for tle_idx, tle_dict in enumerate(tle_dict_list):
-			try:
-				epoch = float(tle_dict[1]['fields'][3])
-			except ValueError as e:
-				print(f'ValueError:{e}:{tle_idx}:{tle_dict}')
+			epoch = float(tle_dict[1]['fields'][3])
 			if epoch > last_epoch:
 				first_new_idx = tle_idx
 				break
@@ -171,9 +186,10 @@ class TLEGetter:
 					fp.write('\n')
 					fp.write(self._stringify3LEDict(tle_dict))
 
-	def _writeTLEsToNewFile(self, sat_id:int, tle_dict_list:list[dict[int,dict[str,list[str]|str]]]):
-		"""New TLE, write entire content to new file"""
-		with open(getTLEFilePath(sat_id), 'w') as fp:\
+	def _writeTLEsToNewFile(self, sat_id:int,
+									tle_dict_list:list[dict[int,dict[str,list[str]|str]]]):
+		"""New TLE, write entire content to new file."""
+		with getTLEFilePath(sat_id).open('w') as fp:
 			# don't want to begin or end file with newline
 			fp.write(self._stringify3LEDict(tle_dict_list[0]))
 			for tle_dict in tle_dict_list[1:]:
@@ -181,6 +197,14 @@ class TLEGetter:
 				fp.write(self._stringify3LEDict(tle_dict))
 
 	def _dictify3LEs(self, lines:list[str]) -> list[dict[int,dict[str,list[str]|str]]]:
+		"""Turn list of strings into list of dicts storing TLE info.
+
+		dict:
+			key: line number (0-2)
+			value: dict
+				key: 'fields' | 'line_str'
+				value: 'list of fields as strings' | original TLE line str
+		"""
 		if len(lines) == 0:
 			raise ValueError("No data")
 		if len(lines)%3 != 0:
@@ -191,12 +215,14 @@ class TLEGetter:
 		tle = {0:{'fields':[], 'line_str':''},
 				1:{'fields':[], 'line_str':''},
 				2:{'fields':[], 'line_str':''}}
-		for ii, line in enumerate(lines):
+		for line in lines:
 			fields = line.split()
 			# insert fields into and store original line in tle dict
-			tle[int(fields[0])]['fields'] = fields
-			tle[int(fields[0])]['line_str'] = line
-			if int(fields[0]) == 2:
+			tle_line_num = int(fields[0])
+			tle[tle_line_num]['fields'] = fields
+			tle[tle_line_num]['line_str'] = line
+
+			if tle_line_num == 2: 		# noqa: PLR2004
 				# store parsed tle
 				list_3les.append(tle.copy())
 				# empty dict
@@ -207,25 +233,57 @@ class TLEGetter:
 		return list_3les
 
 	def _stringify3LEDict(self, tle_dict:dict[int,dict[str,list[str]|str]]) -> str:
+		r"""Turn a 3LE dict back into a \n delimited string."""
 		lines = [line_dict['line_str'] for line_dict in tle_dict.values()]
-		tle_str = '\n'.join(lines)
-		return tle_str
+		return '\n'.join(lines)
 
-class InvalidCredentials(Exception):
-	def __init__(self, message):
+class InvalidCredentialsError(Exception):
+	"""Error indicating invalid credentials used to access spacetrack."""
+	def __init__(self, message:str): # noqa: D107
 		super().__init__(message)
-		return
-	
-def updateTLEs(sat_id_list:list[int], user:str=None, passwd:str=None) -> list[int]:
-	print(f"Using SPACETRACK to update TLEs")
-	g = TLEGetter(sat_id_list,user=user,passwd=passwd)
-	
+
+def updateTLEs(sat_id_list:list[int], user:None|str=None, passwd:None|str=None) -> list[int]:
+	"""Fetch most recent TLE for satcat IDs from spacetrack.
+
+	Fetch most recent TLEs for provided list of satcat IDs, and append to file.
+		If no TLE file yet exists, will download all historical TLEs
+	Will try MAX_RETRIES before raising a TimeoutError
+
+	Args:
+		sat_id_list: list of satcat ids to fetch
+		user: [Optional] overriding spacetrack username to use
+		passwd: [Optional] overriding spacetrack password to use
+
+	Returns:
+		list:list of satcat ids successfully fetched
+
+	Raises:
+		TimeoutError
+	"""
+	logger.info("Using SPACETRACK to update TLEs")
+	g = _TLEGetter(sat_id_list,user=user,passwd=passwd)
+
 	return g.getModifiedIDs()
 
 def getTLEFilePath(sat_id:int) -> pathlib.Path:
+	"""Gives path to file where spacetrack TLE is stored.
+
+	Spacetrack TLEs are stored in {satcadID}.tle
+
+	Args:
+		sat_id: satcat ID
+
+	Returns:
+		path to file
+	"""
 	return spherapy.tle_dir.joinpath(f'{sat_id}.tle')
 
 def doCredentialsExist() -> bool:
+	"""Checks if spacetrack credentials have been loaded into Spherapy.
+
+	Returns:
+		bool:
+	"""
 	user_stored = False
 	passwd_stored = False
 	if spherapy.spacetrack_credentials['user'] is not None:
@@ -233,7 +291,4 @@ def doCredentialsExist() -> bool:
 	if spherapy.spacetrack_credentials['passwd'] is not None:
 		passwd_stored = True
 
-	if user_stored and passwd_stored:
-		return True
-	
-	return False
+	return (user_stored and passwd_stored)
