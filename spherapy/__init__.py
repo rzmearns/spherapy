@@ -34,9 +34,13 @@ if not use_config_file:
 	tle_dir = _data_dir.joinpath('TLEs')
 else:
 	# use the config file
-	_dir_str = config['paths'].get('TLE_path')
-	_temp_dir = pathlib.Path(_dir_str)
-	if _dir_str == '':
+	_TLE_dir_str = config['paths'].get('TLE_path')
+
+	if _TLE_dir_str is None:
+		raise ValueError("Config file has not TLE_path")
+
+	_temp_dir = pathlib.Path(_TLE_dir_str)
+	if _TLE_dir_str == '':
 		# TLE dir not set in config file
 		_data_dir = pathlib.Path(platformdirs.user_data_dir(appname=service_name,
 															ensure_exists=True))
@@ -46,9 +50,9 @@ else:
 	else: 						# noqa: PLR5501
 		# _temp_dir is relative
 		if config_dir.is_dir():
-			tle_dir = config_dir.joinpath(config['paths'].get('TLE_path'))
+			tle_dir = config_dir.joinpath(_TLE_dir_str)
 		else:
-			tle_dir = config_dir.parent.joinpath(config['paths'].get('TLE_path'))
+			tle_dir = config_dir.parent.joinpath(_TLE_dir_str)
 
 tle_dir.mkdir(parents=True, exist_ok=True)
 
