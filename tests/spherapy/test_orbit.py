@@ -39,7 +39,7 @@ class TestOrbit:
 
 		# From multiple TLEs
 		ISS_satcat_id = 25544 #noqa: N806
-		cls.ISS_tle_path = updater.getTLEFilePaths([ISS_satcat_id], use_packaged=True)[0]
+		cls.ISS_tle_path = updater.getTLEFilePaths([ISS_satcat_id])[0]
 		cls.o_tle = orbit.Orbit.fromTLE(cls.t, pathlib.Path(cls.ISS_tle_path))
 		cls.o_tle_astro = orbit.Orbit.fromTLE(cls.t1, pathlib.Path(cls.ISS_tle_path), astrobodies=True)
 
