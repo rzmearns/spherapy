@@ -1,5 +1,6 @@
 import configparser
 from importlib import metadata, resources
+from importlib.resources.abc import Traversable
 import os
 import pathlib
 
@@ -8,7 +9,7 @@ import platformdirs
 from spherapy.util import credentials
 
 
-def _creatPackagedTLEListing() -> None|dict[int,metadata.PackagePath]:
+def _creatPackagedTLEListing() -> None|dict[int,Traversable]:
 	packaged_tles = {}
 	package_file_listing = metadata.files('spherapy')
 	package_dir = resources.files('spherapy')
