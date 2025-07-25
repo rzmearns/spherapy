@@ -353,32 +353,39 @@ class Orbit:
 		-------
 			satplot.Orbit
 		"""
+		# load all TLEs and create skyfield earth sats
 		skyfld_earth_sats = load.tle_file(f'{tle_path}')
+
+		# generate list of epochs for each TLE
 		epochs = np.asarray([a.epoch.utc_datetime() for a in skyfld_earth_sats])
-		unq_epoch, unq_idxs = np.unique(epochs, return_index=True)
+
+		# ensure no duplicate skyfld sats
+		_, unq_idxs = np.unique(epochs, return_index=True)
 		unq_skyfld_earth_sats = list(np.asarray(skyfld_earth_sats)[unq_idxs])
 
-		# return cls(timespan, unq_skyfld_earth_sats, type='TLE', astrobodies=astrobodies)
-
-		tle_dates = [sat.epoch.utc_datetime() for sat in unq_skyfld_earth_sats]
+		skyfld_earth_sats = unq_skyfld_earth_sats
+		tle_epoch_dates = [sat.epoch.utc_datetime() for sat in skyfld_earth_sats]
 
 		# check timespan is valid for provided TLEs
-		if timespan.start < tle_dates[0] - dt.timedelta(days=14):
+		if timespan.start < tle_epoch_dates[0] - dt.timedelta(days=14):
 			logger.error("Timespan begins before provided TLEs (+14 days)")
 			if not unsafe:
 				raise exceptions.OutOfRangeError("Timespan begins before provided TLEs (+14 days)")
-		elif timespan.start > tle_dates[-1] + dt.timedelta(days=14):
+		elif timespan.start > tle_epoch_dates[-1] + dt.timedelta(days=14):
 			logger.error("Timespan begins after provided TLEs (+14 days)")
 			if not unsafe:
 				raise exceptions.OutOfRangeError("Timespan begins after provided TLEs (+14 days)")
-		elif timespan.end > tle_dates[-1] + dt.timedelta(days=14):
+		elif timespan.end > tle_epoch_dates[-1] + dt.timedelta(days=14):
 			logger.error("Timespan ends after provided TLEs (+14 days)")
 			if not unsafe:
 				raise exceptions.OutOfRangeError("Timespan ends after provided TLEs (+14 days)")
 
 		attr_dct = _createEmptyOrbitAttrDict()
 
-		closest_tle_epochs = _findClosestEpochIndices(np.asarray(tle_dates), timespan[:])
+		_timespan_arr = timespan.asDatetime()
+		_timespan_arr = cast("np.ndarray[tuple[int], np.dtype[np.datetime64]]", _timespan_arr)
+		closest_tle_epochs = epoch_u.findClosestDatetimeIndices(_timespan_arr,
+																	np.asarray(tle_epoch_dates))
 
 		d = np.hstack((1, np.diff(closest_tle_epochs)))
 
@@ -400,8 +407,8 @@ class Orbit:
 		sub_timespan = sub_timespans[0]
 		# help out static type analysis (won't be None), no runtime effect
 		sub_timespan = cast("np.ndarray[tuple[int], np.dtype[np.datetime64]]",sub_timespan)
-		sub_skyfld_earthsat = unq_skyfld_earth_sats[tle_epoch_idxs[0]]
-		tle_epoch = tle_dates[tle_epoch_idxs[0]]
+		sub_skyfld_earthsat = skyfld_earth_sats[tle_epoch_idxs[0]]
+		tle_epoch = tle_epoch_dates[tle_epoch_idxs[0]]
 		sat_rec = sub_skyfld_earthsat.at(skyfld_ts.utc(sub_timespan))
 		pos = sat_rec.position.km.T
 		vel = sat_rec.velocity.km_per_s.T * 1000
@@ -425,8 +432,8 @@ class Orbit:
 			sub_timespan = sub_timespans[ii]
 			# help out static type analysis (won't be None), no runtime effect
 			sub_timespan = cast("np.ndarray[tuple[int], np.dtype[np.datetime64]]",sub_timespan)
-			sub_skyfld_earthsat = unq_skyfld_earth_sats[tle_epoch_idxs[ii]]
-			tle_epoch = tle_dates[tle_epoch_idxs[ii]]
+			sub_skyfld_earthsat = skyfld_earth_sats[tle_epoch_idxs[ii]]
+			tle_epoch = tle_epoch_dates[tle_epoch_idxs[ii]]
 			sat_rec = sub_skyfld_earthsat.at(skyfld_ts.utc(sub_timespan))
 			pos = np.vstack((pos, sat_rec.position.km.T))
 			vel = np.vstack((vel, sat_rec.velocity.km_per_s.T * 1000))
@@ -576,7 +583,9 @@ class Orbit:
 		pos = np.empty((len(timespan), 3))
 		vel = np.empty((len(timespan), 3))
 
-		for ii, timestep in enumerate(timespan[:]):
+		_timespan_arr = timespan.asDatetime()
+		_timespan_arr = cast("np.ndarray[tuple[int], np.dtype[np.datetime64]]", _timespan_arr)
+		for ii, timestep in enumerate(_timespan_arr):
 			pos[ii, :] = skyfld_earthsat.at(skyfld_ts.utc(timestep)).position.km
 			vel[ii, :] = skyfld_earthsat.at(skyfld_ts.utc(timestep)).velocity.km_per_s * 1000
 
@@ -596,12 +605,12 @@ class Orbit:
 		attr_dct['pos'] = pos
 		attr_dct['alt'] = np.linalg.norm(pos, axis=1) - consts.R_EARTH
 		attr_dct['vel'] = vel
-		attr_dct['ecc'] = ecc * np.ones(len(timespan))
-		attr_dct['inc'] = inc * np.ones(len(timespan))
-		attr_dct['semi_major'] = a * np.ones(len(timespan))
-		attr_dct['raan'] = raan * np.ones(len(timespan))
-		attr_dct['argp'] = argp * np.ones(len(timespan))
-		attr_dct['TLE_epochs'] = t0_epoch * np.ones(len(timespan))
+		attr_dct['ecc'] = np.full(len(timespan), ecc)
+		attr_dct['inc'] = np.full(len(timespan), inc)
+		attr_dct['semi_major'] = np.full(len(timespan), a)
+		attr_dct['raan'] = np.full(len(timespan), raan)
+		attr_dct['argp'] = np.full(len(timespan), argp)
+		attr_dct['TLE_epochs'] = np.full(len(timespan),timespan.start)
 		attr_dct['period'] = period
 		attr_dct['period_steps'] = period_steps
 
@@ -852,12 +861,13 @@ class Orbit:
 		return np.logical_not(sunlit)
 
 
-def _findClosestEpochIndices(target:list[float], values:float) -> list[int]:
-	right_idx = np.searchsorted(target, values)
-	left_idx = right_idx - 1
-	# replace any idx greater than len of target with last idx in target
-	right_idx[np.where(right_idx==len(target))] = len(target) - 1
-	stacked_idx = np.hstack((left_idx.reshape(-1,1),right_idx.reshape(-1,1)))
-	target_vals_at_idxs = target[stacked_idx]
-	closest_idx_columns = np.argmin(np.abs(target_vals_at_idxs - values.reshape(-1,1)),axis=1)
-	return stacked_idx[range(len(stacked_idx)),closest_idx_columns]
+
+# def _findClosestEpochIndices(target:list[float], values:float) -> list[int]:
+# 	right_idx = np.searchsorted(target, values)
+# 	left_idx = right_idx - 1
+# 	# replace any idx greater than len of target with last idx in target
+# 	right_idx[np.where(right_idx==len(target))] = len(target) - 1
+# 	stacked_idx = np.hstack((left_idx.reshape(-1,1),right_idx.reshape(-1,1)))
+# 	target_vals_at_idxs = target[stacked_idx]
+# 	closest_idx_columns = np.argmin(np.abs(target_vals_at_idxs - values.reshape(-1,1)),axis=1)
+# 	return stacked_idx[range(len(stacked_idx)),closest_idx_columns]
