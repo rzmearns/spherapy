@@ -46,8 +46,18 @@ def getTLEFilePaths(sat_id_list:list[int], use_packaged:bool=False) -> list[path
 	Returns:
 		list of paths
 	"""
-	if use_packaged and spherapy.packaged_TLEs is not None:
-		return [pathlib.Path(spherapy.packaged_TLEs[sat_id]) for sat_id in sat_id_list]
+	if spherapy.packaged_TLEs is None:
+		raise ValueError('There are no TLEs packaged with spherapy')
+	if use_packaged:
+		try:
+			path_list = []
+			attempted_sat_id = 0
+			for sat_id in sat_id_list:
+				attempted_sat_id = sat_id
+				path_list.append(pathlib.Path(spherapy.packaged_TLEs[sat_id]))
+		except KeyError as e:
+			raise KeyError(f'TLE for {attempted_sat_id} is not packaged with spherapy.') from e
+		return path_list
 	if spacetrack.doCredentialsExist():
 		return [ spacetrack.getTLEFilePath(sat_id) for sat_id in sat_id_list ]
 	return [ celestrak.getTLEFilePath(sat_id) for sat_id in sat_id_list ]
