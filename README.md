@@ -21,11 +21,11 @@ import spherapy.updater
 import spherapy.timespan
 import spherapy.orbit
 ```
-- if using real satellites; update the desired TLEs, or use those supplied with the package (will be out of date).
+- if using real world satellites; update the desired TLEs (you can also use the TLEs supplied with the package, but these will be out of date).
 	- TLE id's can be found using [NORAD's CelesTrak catalogue search](https://celestrak.org/satcat/search.php)
 ```python
-updated_TLEs = spherapy.updater.updateTLEs([58468])
-TLE_paths = spherapy.updater.getTLEFilePaths([58468])
+updated_TLEs = spherapy.updater.updateTLEs([25544]) 	#ISS
+TLE_paths = spherapy.updater.getTLEFilePaths([25544], use_packaged=True) 	#ISS
 ```
 - set up a timespan
 ```python
@@ -48,6 +48,34 @@ o = spherapy.orbit.Orbit.fromAnalyticalOrbitalParam(timespan, body='Earth',
 																										 name='My Analytical Orbit',
 																										 astrobodies=True)
 ```  
+
+#### Full TLE example (for copy paste)
+```
+import datetime
+import spherapy.updater
+import spherapy.timespan
+import spherapy.orbit
+TLE_paths = spherapy.updater.getTLEFilePaths([25544], use_packaged=True) 	#ISS
+t = spherapy.timespan.TimeSpan(datetime.datetime(2024,10,15,0,0,1),'1S','90M')
+o = spherapy.orbit.Orbit.fromTLE(t, TLE_paths[0])
+```
+
+#### Full Analytical exmaple (for copy paste)
+```
+import datetime
+import spherapy.timespan
+import spherapy.orbit
+t = spherapy.timespan.TimeSpan(datetime.datetime(2024,10,15,0,0,1),'1S','90M')
+o = spherapy.orbit.Orbit.fromAnalyticalOrbitalParam(timespan, body='Earth',
+																										 a=6978,
+																										 ecc=0,
+																										 inc=0,
+																										 raan=0,
+																										 argp=0,
+																										 mean_nu=0,
+																										 name='My Analytical Orbit',
+																										 astrobodies=True)
+```
 
 ## SpaceTrack Credentials
 In order to calculate the position of a satellite at any given time, spherapy requires [TLE information](https://en.wikipedia.org/wiki/Two-line_element_set) for each satellite which is accurate for the given time period (or 'epoch').  
