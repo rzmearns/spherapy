@@ -102,6 +102,8 @@ def findClosestDatetimeIndices(search_arr:np.ndarray[tuple[int], np.dtype[np.dat
 								-> np.ndarray[tuple[int], np.dtype[np.int64]]:
 	"""Find the index of the closest datetime in source arr for each datetime in search_arr.
 
+	Both search_arr and source_arr must be sorted.
+
 	Args:
 		search_arr: Mx1 array of datetimes, will find closest time for each element in this array
 		source_arr: Nx1: array of datetimes to compare to
