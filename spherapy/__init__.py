@@ -1,5 +1,5 @@
 import configparser
-from importlib import metadata
+from importlib import metadata, resources
 import os
 import pathlib
 
@@ -11,6 +11,7 @@ from spherapy.util import credentials
 def _creatPackagedTLEListing() -> None|dict[int,metadata.PackagePath]:
 	packaged_tles = {}
 	package_file_listing = metadata.files('spherapy')
+	package_dir = resources.files('spherapy')
 	if package_file_listing is not None and len(package_file_listing) > 0:
 		for path in package_file_listing:
 			if 'TLEs' in path.parts:
@@ -19,7 +20,7 @@ def _creatPackagedTLEListing() -> None|dict[int,metadata.PackagePath]:
 				except ValueError:
 					print("Can't import packaged TLEs, skipping...") #noqa: T201
 					return None
-				packaged_tles[tle_id] = path
+				packaged_tles[tle_id] = package_dir.joinpath(path.name)
 	return packaged_tles
 
 service_name = "spherapy"
