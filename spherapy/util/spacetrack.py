@@ -7,8 +7,10 @@ Attributes:
 import datetime as dt
 import logging
 import pathlib
+from typing import TypedDict
 
 import spacetrack as sp
+from typing_extensions import NotRequired
 
 import spherapy
 from spherapy.util import epoch_u
@@ -123,7 +125,7 @@ class _TLEGetter:
 
 		return sat_id
 
-	def _findLocalLastEpoch(self, sat_id:int) -> tuple[float, float]:
+	def _findLocalLastEpoch(self, sat_id:int) -> tuple[str, float]:
 		"""Find the last TLE epoch in a TLE file."""
 		# get penultimate and ultimate epochs
 		with getTLEFilePath(sat_id).open('r') as fp:
@@ -131,45 +133,45 @@ class _TLEGetter:
 		while lines[-1] == '':
 			lines = lines[:-1]
 		last_epoch_line = lines[-2]
-		last_epoch = float(last_epoch_line.split()[3])
+		last_tle_epoch = last_epoch_line.split()[3]
 
-		last_epoch_datetime = epoch_u.epoch2datetime(last_epoch)
+		last_epoch_datetime = epoch_u.epoch2datetime(last_tle_epoch)
 		delta = dt.datetime.now(tz=dt.timezone.utc) - last_epoch_datetime
 
-		return last_epoch, delta.days
+		return last_tle_epoch, delta.days
 
-	def _calcRequestAllOptions(self, sat_id:int) -> dict[str, str|int]:
+	def _calcRequestAllOptions(self, sat_id:int) -> "_RequestOptions":
 		"""Format spacetrack library request options. Request all TLEs."""
-		request_options = {}
-		request_options['norad_cat_id'] = sat_id
-		request_options['orderby'] = 'epoch asc'
-		request_options['limit'] = 500000
-		request_options['format'] = '3le'
-		request_options['iter_lines'] = True
+		request_options:_RequestOptions = {
+				'norad_cat_id': sat_id,
+				'orderby': 'epoch asc',
+				'limit': 500000,
+				'format': '3le',
+				'iter_lines': True}
 
 		return request_options
 
-	def _calcRequestPartialOptions(self, sat_id:int) -> dict[str, str|int]:
+	def _calcRequestPartialOptions(self, sat_id:int) -> "_RequestOptions":
 		"""Format spacetrack library request options. Request all TLEs since last epoch."""
 		_, days_since_last_epoch = self._findLocalLastEpoch(sat_id)
 
-		request_options = {}
-		request_options['norad_cat_id'] = sat_id
-		request_options['orderby'] = 'epoch asc'
-		request_options['epoch'] = f'>now-{days_since_last_epoch+1}'
-		request_options['limit'] = 500000
-		request_options['format'] = '3le'
-		request_options['iter_lines'] = True
+		request_options:_RequestOptions = {
+				'norad_cat_id': sat_id,
+				'orderby': 'epoch asc',
+				'epoch': f'>now-{days_since_last_epoch+1}',
+				'limit': 500000,
+				'format': '3le',
+				'iter_lines': True}
 
 		return request_options
 
-	def _writeTLEsToFile(self, sat_id:int, tle_dict_list:list[dict[int,dict[str,list[str]|str]]]):
+	def _writeTLEsToFile(self, sat_id:int, tle_dict_list:list[dict[int, "_3LELineDict"]]):
 		"""Append TLEs to TLE file."""
 		last_epoch, _ = self._findLocalLastEpoch(sat_id)
 		first_new_idx = None
 		for tle_idx, tle_dict in enumerate(tle_dict_list):
-			epoch = float(tle_dict[1]['fields'][3])
-			if epoch > last_epoch:
+			epoch = tle_dict[1]['fields'][3]
+			if epoch_u.epochLaterThan(epoch, last_epoch):
 				first_new_idx = tle_idx
 				break
 		if first_new_idx is not None:
@@ -179,7 +181,7 @@ class _TLEGetter:
 					fp.write(self._stringify3LEDict(tle_dict))
 
 	def _writeTLEsToNewFile(self, sat_id:int,
-									tle_dict_list:list[dict[int,dict[str,list[str]|str]]]):
+									tle_dict_list:list[dict[int, "_3LELineDict"]]):
 		"""New TLE, write entire content to new file."""
 		with getTLEFilePath(sat_id).open('w') as fp:
 			# don't want to begin or end file with newline
@@ -188,7 +190,7 @@ class _TLEGetter:
 				fp.write('\n')
 				fp.write(self._stringify3LEDict(tle_dict))
 
-	def _dictify3LEs(self, lines:list[str]) -> list[dict[int,dict[str,list[str]|str]]]:
+	def _dictify3LEs(self, lines:list[str]) -> list[dict[int, "_3LELineDict"]]:
 		"""Turn list of strings into list of dicts storing TLE info.
 
 		dict:
@@ -204,7 +206,7 @@ class _TLEGetter:
 			raise ValueError('Incomplete TLEs present, aborting')
 
 		list_3les = []
-		tle = {0:{'fields':[], 'line_str':''},
+		tle:dict[int,_3LELineDict] = {0:{'fields':[], 'line_str':''},
 				1:{'fields':[], 'line_str':''},
 				2:{'fields':[], 'line_str':''}}
 		for line in lines:
@@ -224,7 +226,7 @@ class _TLEGetter:
 
 		return list_3les
 
-	def _stringify3LEDict(self, tle_dict:dict[int,dict[str,list[str]|str]]) -> str:
+	def _stringify3LEDict(self, tle_dict:dict[int, "_3LELineDict"]) -> str:
 		r"""Turn a 3LE dict back into a \n delimited string."""
 		lines = [line_dict['line_str'] for line_dict in tle_dict.values()]
 		return '\n'.join(lines)
@@ -233,6 +235,18 @@ class InvalidCredentialsError(Exception):
 	"""Error indicating invalid credentials used to access spacetrack."""
 	def __init__(self, message:str): # noqa: D107
 		super().__init__(message)
+
+class _3LELineDict(TypedDict): 		# noqa: N801
+	fields: list[str]
+	line_str: str
+
+class _RequestOptions(TypedDict):
+	norad_cat_id: int
+	orderby: str
+	epoch: NotRequired[str]
+	limit: int
+	format: str
+	iter_lines: bool
 
 def updateTLEs(sat_id_list:list[int], user:None|str=None, passwd:None|str=None) -> list[int]:
 	"""Fetch most recent TLE for satcat IDs from spacetrack.

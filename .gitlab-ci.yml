@@ -27,4 +27,4 @@ test:
 
 type:
   script:
-    - mypy spherapy
+    - mypy spherapy --disable-error-code=import-untyped

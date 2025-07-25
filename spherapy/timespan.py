@@ -5,7 +5,7 @@ This module provides:
 """
 import datetime as dt
 import logging
-from typing import Self
+from typing import Self, cast
 
 from astropy.time import Time as astropyTime
 from dateutil.relativedelta import relativedelta
@@ -66,7 +66,7 @@ class TimeSpan:
 			t0 = t0.replace(tzinfo=dt.timezone.utc)
 
 		self.start = t0
-		self.time_step = self._parseTimestep(timestep)
+		self.time_step:None|dt.timedelta = self._parseTimestep(timestep)
 		self.end = self._parseTimeperiod(t0, timeperiod)
 		self.time_period = self.end - self.start
 
@@ -106,12 +106,12 @@ class TimeSpan:
 		return hash((self.start, self.end, self.time_step))
 
     # Make it callable and return the data for that entry
-	def __call__(self) -> np.ndarray[tuple[int], np.dtype[dt.datetime]]:
+	def __call__(self) -> np.ndarray[tuple[int], np.dtype[np.datetime64]]:
 		"""Returns the internal _timearr when the TimeSpan is called."""
 		return self._timearr
 
 	def __getitem__(self, idx:None|int|np.integer|tuple|list|slice=None) \
-						-> None|dt.datetime|np.ndarray[tuple[int], np.dtype[dt.datetime]]:
+						-> None|dt.datetime|np.ndarray[tuple[int], np.dtype[np.datetime64]]:
 		"""Returns an index or slice of the TimeSpan as an array of datetime objects."""
 		if idx is None:
 			return self._timearr
@@ -139,8 +139,6 @@ class TimeSpan:
 		self_copy = TimeSpan(self.start)
 
 		self_copy.start = self.start
-		self_copy.init_timestep_str = ''
-		self_copy.init_timeperiod_str = ''
 		self_copy.time_step = None
 
 		self_copy.end = other.end
@@ -168,7 +166,7 @@ class TimeSpan:
 		return astropyTime(self._timearr[idx], scale=scale)
 
 	def asDatetime(self, idx:None|int=None) \
-		-> dt.datetime|np.ndarray[tuple[int], np.dtype[dt.datetime]]:
+		-> dt.datetime|np.ndarray[tuple[int], np.dtype[np.datetime64]]:
 		"""Return ndarray of TimeSpan as datetime objects.
 
 		Args:
@@ -244,7 +242,12 @@ class TimeSpan:
 		diff = self._timearr - t_search
 		out = np.abs(np.vectorize(lambda x: x.total_seconds())(diff))
 		res_index = int(np.argmin(out))
-		return self.asDatetime(res_index), res_index
+		res_datetime = self.asDatetime(res_index)
+
+		# res_datetime must be a dt.datetime since res_index is an int, so cast
+		res_datetime = cast("dt.datetime", res_datetime)
+
+		return res_datetime, res_index
 
 	def _parseTimeperiod(self, t0:dt.datetime, timeperiod:str) -> dt.datetime:
 		last_idx = 0
@@ -322,13 +325,11 @@ class TimeSpan:
 		self._timearr = self._timearr[idxs]
 		self.start = self._timearr[0]
 		self.end = self._timearr[-1]
-		self.init_timeperiod_str = None
-		self.init_timestep_str = None
 		self.time_step = None
 		self.time_period = self.end - self.start
 
 	@classmethod
-	def fromDatetime(cls, dt_arr:np.ndarray[tuple[int], np.dtype[dt.datetime]],
+	def fromDatetime(cls, dt_arr:np.ndarray[tuple[int], np.dtype[np.datetime64]],
 							timezone:dt.timezone=dt.timezone.utc) -> 'TimeSpan':
 		"""Create a TimeSpan from an array of datetime objects.
 
@@ -347,8 +348,6 @@ class TimeSpan:
 		t._timearr = dt_arr.copy()
 		t.start = start
 		t.end = end
-		t.init_timeperiod_str = None
-		t.init_timestep_str = None
 		t.time_step = None
 		t.time_period = t.end-t.start
 

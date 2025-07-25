@@ -9,7 +9,7 @@ import logging
 import pathlib
 import types
 import typing
-from typing import TypedDict
+from typing import Any, TypedDict, cast
 
 from astropy import units as astropy_units
 from astropy.time import Time as astropyTime
@@ -64,7 +64,7 @@ class OrbitAttrDict(TypedDict):
 	satcat_id: None|int
 	gen_type: None|str
 	timespan: None|TimeSpan
-	TLE_epochs: None|np.ndarray[tuple[int], np.dtype[dt.datetime]]
+	TLE_epochs: None|np.ndarray[tuple[int], np.dtype[np.datetime64]]
 	pos: None|np.ndarray[tuple[int,int], np.dtype[np.float64]]
 	pos_ecef: None|np.ndarray[tuple[int,int], np.dtype[np.float64]]
 	vel_ecef: None|np.ndarray[tuple[int,int], np.dtype[np.float64]]
@@ -111,7 +111,7 @@ def _createEmptyOrbitAttrDict() -> OrbitAttrDict:
 	'argp':None,
 	})
 
-def _validateTypedDict(obj:object, typ: type) -> bool:
+def _validateOrbitAttrDict(obj:OrbitAttrDict, typ: type) -> bool:
 	"""Validates all fields of a TypedDict have been instantiated, and are of correct type.
 
 	Raises:
@@ -149,9 +149,9 @@ def _NoneValidator(obj:object, check_type:type) -> bool:  #noqa: ARG001
 
 def _genericValidator(obj:object, check_type:type|types.GenericAlias) -> bool:
 	if type(check_type) is types.GenericAlias:
-		if isinstance(obj, check_type.__origin__):
+		if type(obj) is check_type.__origin__:
 			return True
-	elif isinstance(obj, check_type):
+	elif type(obj) is check_type:
 			return True
 	return False
 
@@ -225,7 +225,7 @@ class Orbit:
 			Orbit.fromAnalyticalOrbitalParam()
 		"""
 		# Should always be called from a class method, spit error if not.
-		if not _validateTypedDict(data, OrbitAttrDict):
+		if not _validateOrbitAttrDict(data, OrbitAttrDict):
 			logger.error("Orbit() should not be called directly, "
 						"use one of the fromXX constructors.")
 			raise ValueError("Orbit() should not be called directly, "
@@ -325,7 +325,7 @@ class Orbit:
 		attr_dct['pos'] = positions
 		# Assume linear motion between each position at each timestep;
 		# Then assume it stops at the last timestep.
-		vel = attr_dct['pos'][1:] - attr_dct['pos'][:-1]
+		vel = positions[1:] - positions[:-1]
 		attr_dct['vel'] = np.concatenate((vel, np.array([[0, 0, 0]])))
 		attr_dct['name'] = 'Sat from position list'
 		attr_dct['gen_type'] = 'position list'
@@ -353,32 +353,39 @@ class Orbit:
 		-------
 			satplot.Orbit
 		"""
+		# load all TLEs and create skyfield earth sats
 		skyfld_earth_sats = load.tle_file(f'{tle_path}')
+
+		# generate list of epochs for each TLE
 		epochs = np.asarray([a.epoch.utc_datetime() for a in skyfld_earth_sats])
-		unq_epoch, unq_idxs = np.unique(epochs, return_index=True)
+
+		# ensure no duplicate skyfld sats
+		_, unq_idxs = np.unique(epochs, return_index=True)
 		unq_skyfld_earth_sats = list(np.asarray(skyfld_earth_sats)[unq_idxs])
 
-		# return cls(timespan, unq_skyfld_earth_sats, type='TLE', astrobodies=astrobodies)
-
-		tle_dates = [sat.epoch.utc_datetime() for sat in unq_skyfld_earth_sats]
+		skyfld_earth_sats = unq_skyfld_earth_sats
+		tle_epoch_dates = [sat.epoch.utc_datetime() for sat in skyfld_earth_sats]
 
 		# check timespan is valid for provided TLEs
-		if timespan.start < tle_dates[0] - dt.timedelta(days=14):
+		if timespan.start < tle_epoch_dates[0] - dt.timedelta(days=14):
 			logger.error("Timespan begins before provided TLEs (+14 days)")
 			if not unsafe:
 				raise exceptions.OutOfRangeError("Timespan begins before provided TLEs (+14 days)")
-		elif timespan.start > tle_dates[-1] + dt.timedelta(days=14):
+		elif timespan.start > tle_epoch_dates[-1] + dt.timedelta(days=14):
 			logger.error("Timespan begins after provided TLEs (+14 days)")
 			if not unsafe:
 				raise exceptions.OutOfRangeError("Timespan begins after provided TLEs (+14 days)")
-		elif timespan.end > tle_dates[-1] + dt.timedelta(days=14):
+		elif timespan.end > tle_epoch_dates[-1] + dt.timedelta(days=14):
 			logger.error("Timespan ends after provided TLEs (+14 days)")
 			if not unsafe:
 				raise exceptions.OutOfRangeError("Timespan ends after provided TLEs (+14 days)")
 
 		attr_dct = _createEmptyOrbitAttrDict()
 
-		closest_tle_epochs = _findClosestEpochIndices(np.asarray(tle_dates), timespan[:])
+		_timespan_arr = timespan.asDatetime()
+		_timespan_arr = cast("np.ndarray[tuple[int], np.dtype[np.datetime64]]", _timespan_arr)
+		closest_tle_epochs = epoch_u.findClosestDatetimeIndices(_timespan_arr,
+																	np.asarray(tle_epoch_dates))
 
 		d = np.hstack((1, np.diff(closest_tle_epochs)))
 
@@ -398,8 +405,10 @@ class Orbit:
 
 		# Calculate data for first run
 		sub_timespan = sub_timespans[0]
-		sub_skyfld_earthsat = unq_skyfld_earth_sats[tle_epoch_idxs[0]]
-		tle_epoch = tle_dates[tle_epoch_idxs[0]]
+		# help out static type analysis (won't be None), no runtime effect
+		sub_timespan = cast("np.ndarray[tuple[int], np.dtype[np.datetime64]]",sub_timespan)
+		sub_skyfld_earthsat = skyfld_earth_sats[tle_epoch_idxs[0]]
+		tle_epoch = tle_epoch_dates[tle_epoch_idxs[0]]
 		sat_rec = sub_skyfld_earthsat.at(skyfld_ts.utc(sub_timespan))
 		pos = sat_rec.position.km.T
 		vel = sat_rec.velocity.km_per_s.T * 1000
@@ -421,8 +430,10 @@ class Orbit:
 		# fill in data for any other sub timespans
 		for ii in range(1,len(sub_timespans)):
 			sub_timespan = sub_timespans[ii]
-			sub_skyfld_earthsat = unq_skyfld_earth_sats[tle_epoch_idxs[ii]]
-			tle_epoch = tle_dates[tle_epoch_idxs[ii]]
+			# help out static type analysis (won't be None), no runtime effect
+			sub_timespan = cast("np.ndarray[tuple[int], np.dtype[np.datetime64]]",sub_timespan)
+			sub_skyfld_earthsat = skyfld_earth_sats[tle_epoch_idxs[ii]]
+			tle_epoch = tle_epoch_dates[tle_epoch_idxs[ii]]
 			sat_rec = sub_skyfld_earthsat.at(skyfld_ts.utc(sub_timespan))
 			pos = np.vstack((pos, sat_rec.position.km.T))
 			vel = np.vstack((vel, sat_rec.velocity.km_per_s.T * 1000))
@@ -461,9 +472,12 @@ class Orbit:
 		attr_dct['raan'] = raan
 		attr_dct['argp'] = argp
 		attr_dct['TLE_epochs'] = TLE_epochs
-		attr_dct['period'] = 2 * np.pi / sub_skyfld_earthsat.model.no_kozai * 60
+
+		period = float(2 * np.pi / sub_skyfld_earthsat.model.no_kozai * 60)
+		attr_dct['period'] = period
+
 		if timespan.time_step is not None:
-			attr_dct['period_steps'] = int(attr_dct['period'] / timespan.time_step.total_seconds())
+			attr_dct['period_steps'] = int(period / timespan.time_step.total_seconds())
 		else:
 			attr_dct['period_steps'] = None
 		attr_dct['name'] = sub_skyfld_earthsat.name
@@ -569,15 +583,20 @@ class Orbit:
 		pos = np.empty((len(timespan), 3))
 		vel = np.empty((len(timespan), 3))
 
-		for ii, timestep in enumerate(timespan[:]):
+		_timespan_arr = timespan.asDatetime()
+		_timespan_arr = cast("np.ndarray[tuple[int], np.dtype[np.datetime64]]", _timespan_arr)
+		for ii, timestep in enumerate(_timespan_arr):
 			pos[ii, :] = skyfld_earthsat.at(skyfld_ts.utc(timestep)).position.km
 			vel[ii, :] = skyfld_earthsat.at(skyfld_ts.utc(timestep)).velocity.km_per_s * 1000
 
 		# TODO: calculate ecef and lat,lon values.
 		# TODO: satrec doesn't have a frame_xyz_and_velocity in this case
 
-		period = 2 * np.pi / skyfld_earthsat.model.no_kozai * 60
-		period_steps = int(period / timespan.time_step.total_seconds())
+		period = float(2 * np.pi / skyfld_earthsat.model.no_kozai * 60)
+		if timespan.time_step is not None:
+			period_steps = int(period / timespan.time_step.total_seconds())
+		else:
+			period_steps = None
 
 		attr_dct['name'] = name
 		attr_dct['timespan'] = timespan
@@ -586,12 +605,12 @@ class Orbit:
 		attr_dct['pos'] = pos
 		attr_dct['alt'] = np.linalg.norm(pos, axis=1) - consts.R_EARTH
 		attr_dct['vel'] = vel
-		attr_dct['ecc'] = ecc * np.ones(len(timespan))
-		attr_dct['inc'] = inc * np.ones(len(timespan))
-		attr_dct['semi_major'] = a * np.ones(len(timespan))
-		attr_dct['raan'] = raan * np.ones(len(timespan))
-		attr_dct['argp'] = argp * np.ones(len(timespan))
-		attr_dct['TLE_epochs'] = t0_epoch * np.ones(len(timespan))
+		attr_dct['ecc'] = np.full(len(timespan), ecc)
+		attr_dct['inc'] = np.full(len(timespan), inc)
+		attr_dct['semi_major'] = np.full(len(timespan), a)
+		attr_dct['raan'] = np.full(len(timespan), raan)
+		attr_dct['argp'] = np.full(len(timespan), argp)
+		attr_dct['TLE_epochs'] = np.full(len(timespan),timespan.start)
 		attr_dct['period'] = period
 		attr_dct['period_steps'] = period_steps
 
@@ -599,7 +618,7 @@ class Orbit:
 
 	#analytical
 	@classmethod
-	def fromAnalyticalOrbitalParam(cls, timespan:TimeSpan, 					#noqa: C901, PLR0913
+	def fromAnalyticalOrbitalParam(cls, timespan:TimeSpan, 					#noqa: C901, PLR0912, PLR0913
 											body:str='Earth',
 											a:float=6978,
 											ecc:float=0,
@@ -708,8 +727,11 @@ class Orbit:
 		pos = np.asarray(ephem.rv()[0], dtype=np.float64)
 		vel = np.asarray(ephem.rv()[1], dtype=np.float64) * 1000
 
-		period = orb.period.unit.in_units('s') * orb.period.value
-		period_steps = int(period / timespan.time_step.total_seconds())
+		period = float(orb.period.unit.in_units('s') * orb.period.value)
+		if timespan.time_step is not None:
+			period_steps = int(period / timespan.time_step.total_seconds())
+		else:
+			period_steps = None
 
 		attr_dct['name'] = name
 		attr_dct['timespan'] = timespan
@@ -781,8 +803,10 @@ class Orbit:
 			position
 
 		Raises:
-			TypeError: Raised 'search_time' is not a valid type
+			ValueError: orbit has no pos data
 		"""
+		if self.pos is None:
+			raise ValueError("Orbit has no pos data")
 		return self._getAttributeClosestTime(self.pos, search_time)
 
 	def getVelocity(self, search_time:dt.datetime|astropyTime) \
@@ -796,13 +820,18 @@ class Orbit:
 			velocity
 
 		Raises:
-			TypeError: Raised 'search_time' is not a valid type
+			ValueError: orbit has no vel data
 		"""
+		if self.vel is None:
+			raise ValueError("Orbit has no vel data")
 		return self._getAttributeClosestTime(self.vel, search_time)
 
-	def _getAttributeClosestTime(self, attr:np.ndarray[np.dtype[np.float64]],
+	def _getAttributeClosestTime(self, attr:np.ndarray[Any, np.dtype[np.float64]],
 										search_time:dt.datetime|astropyTime)\
 										-> np.ndarray[tuple[int], np.dtype[np.float64]]:
+
+		if self.timespan is None:
+			raise ValueError("Orbit has no timespan")
 
 		if isinstance(search_time, dt.datetime):
 			_, closest_idx = self.timespan.getClosest(search_time)
@@ -832,12 +861,13 @@ class Orbit:
 		return np.logical_not(sunlit)
 
 
-def _findClosestEpochIndices(target:list[float], values:float) -> list[int]:
-	right_idx = np.searchsorted(target, values)
-	left_idx = right_idx - 1
-	# replace any idx greater than len of target with last idx in target
-	right_idx[np.where(right_idx==len(target))] = len(target) - 1
-	stacked_idx = np.hstack((left_idx.reshape(-1,1),right_idx.reshape(-1,1)))
-	target_vals_at_idxs = target[stacked_idx]
-	closest_idx_columns = np.argmin(np.abs(target_vals_at_idxs - values.reshape(-1,1)),axis=1)
-	return stacked_idx[range(len(stacked_idx)),closest_idx_columns]
+
+# def _findClosestEpochIndices(target:list[float], values:float) -> list[int]:
+# 	right_idx = np.searchsorted(target, values)
+# 	left_idx = right_idx - 1
+# 	# replace any idx greater than len of target with last idx in target
+# 	right_idx[np.where(right_idx==len(target))] = len(target) - 1
+# 	stacked_idx = np.hstack((left_idx.reshape(-1,1),right_idx.reshape(-1,1)))
+# 	target_vals_at_idxs = target[stacked_idx]
+# 	closest_idx_columns = np.argmin(np.abs(target_vals_at_idxs - values.reshape(-1,1)),axis=1)
+# 	return stacked_idx[range(len(stacked_idx)),closest_idx_columns]
