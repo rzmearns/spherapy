@@ -1,4 +1,5 @@
 import configparser
+from importlib.resources import files
 import os
 import pathlib
 
@@ -61,3 +62,6 @@ if not use_config_file:
 	spacetrack_credentials = credentials.fetchKeyringCredentials()
 else:
 	spacetrack_credentials = credentials.fetchConfigCredentials(config)
+
+data_files = files('spherapy.data.TLEs')
+print(f'{data_files=}')   # noqa: T201
