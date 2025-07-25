@@ -57,7 +57,6 @@ spherapy-create-credentials = "spherapy.scripts:create_credentials"
 include-package-data = true
 
 [tool.setuptools.packages.find]
-namespaces = true
 where = ["spherapy"]
 
 [tool.setuptools.package-data]
