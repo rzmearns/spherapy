@@ -13,7 +13,7 @@ def _creatPackagedTLEListing() -> None|dict[int,pathlib.Path]:
 	package_file_listing = metadata.files('spherapy')
 	if package_file_listing is not None and len(package_file_listing) > 0:
 		for path in package_file_listing:
-			if 'TLE' in path.parts:
+			if 'TLEs' in path.parts:
 				try:
 					tle_id = int(path.stem)
 				except ValueError:
