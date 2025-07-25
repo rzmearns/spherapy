@@ -64,4 +64,5 @@ else:
 	spacetrack_credentials = credentials.fetchConfigCredentials(config)
 
 data_files = files('spherapy.data.TLEs')
+print("listing data files:") #noqa: T201
 print(f'{data_files=}')   # noqa: T201
