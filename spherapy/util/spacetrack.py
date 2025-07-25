@@ -13,7 +13,7 @@ import spacetrack as sp
 from typing_extensions import NotRequired
 
 import spherapy
-from spherapy.util import epoch_u
+from spherapy.util import elements_u, epoch_u
 
 MAX_RETRIES=3
 
@@ -74,7 +74,7 @@ class _TLEGetter:
 				logger.info("Requesting TLEs from spacetrack with following options: %s", opts)
 				resp_line_iterator = self.stc.tle(**opts)
 				resp_lines = list(resp_line_iterator)
-				tle_dict_list = self._dictify3LEs(resp_lines)
+				tle_dict_list = elements_u.dictify3LEs(resp_lines)
 				self._writeTLEsToNewFile(sat_id, tle_dict_list)
 				break
 			except TimeoutError:
@@ -112,7 +112,7 @@ class _TLEGetter:
 					logger.info("Requesting TLEs from spacetrack with following options: %s", opts)
 					resp_line_iterator = self.stc.tle(**opts)
 					resp_lines = list(resp_line_iterator)
-					tle_dict_list = self._dictify3LEs(resp_lines)
+					tle_dict_list = elements_u.dictify3LEs(resp_lines)
 					self._writeTLEsToFile(sat_id, tle_dict_list)
 				break
 			except TimeoutError:
@@ -165,7 +165,8 @@ class _TLEGetter:
 
 		return request_options
 
-	def _writeTLEsToFile(self, sat_id:int, tle_dict_list:list[dict[int, "_3LELineDict"]]):
+	def _writeTLEsToFile(self, sat_id:int,
+								tle_dict_list:list[dict[int, elements_u.ElementsLineDict]]):
 		"""Append TLEs to TLE file."""
 		last_epoch, _ = self._findLocalLastEpoch(sat_id)
 		first_new_idx = None
@@ -178,67 +179,22 @@ class _TLEGetter:
 			with getTLEFilePath(sat_id).open('a') as fp:
 				for tle_dict in tle_dict_list[first_new_idx:]:
 					fp.write('\n')
-					fp.write(self._stringify3LEDict(tle_dict))
+					fp.write(elements_u.stringify3LEDict(tle_dict))
 
 	def _writeTLEsToNewFile(self, sat_id:int,
-									tle_dict_list:list[dict[int, "_3LELineDict"]]):
+									tle_dict_list:list[dict[int, elements_u.ElementsLineDict]]):
 		"""New TLE, write entire content to new file."""
 		with getTLEFilePath(sat_id).open('w') as fp:
 			# don't want to begin or end file with newline
-			fp.write(self._stringify3LEDict(tle_dict_list[0]))
+			fp.write(elements_u.stringify3LEDict(tle_dict_list[0]))
 			for tle_dict in tle_dict_list[1:]:
 				fp.write('\n')
-				fp.write(self._stringify3LEDict(tle_dict))
-
-	def _dictify3LEs(self, lines:list[str]) -> list[dict[int, "_3LELineDict"]]:
-		"""Turn list of strings into list of dicts storing TLE info.
-
-		dict:
-			key: line number (0-2)
-			value: dict
-				key: 'fields' | 'line_str'
-				value: 'list of fields as strings' | original TLE line str
-		"""
-		if len(lines) == 0:
-			raise ValueError("No data")
-		if len(lines)%3 != 0:
-			# If not obvious what lines relate to eachother, can't make assumption -> abort.
-			raise ValueError('Incomplete TLEs present, aborting')
-
-		list_3les = []
-		tle:dict[int,_3LELineDict] = {0:{'fields':[], 'line_str':''},
-				1:{'fields':[], 'line_str':''},
-				2:{'fields':[], 'line_str':''}}
-		for line in lines:
-			fields = line.split()
-			# insert fields into and store original line in tle dict
-			tle_line_num = int(fields[0])
-			tle[tle_line_num]['fields'] = fields
-			tle[tle_line_num]['line_str'] = line
-
-			if tle_line_num == 2: 		# noqa: PLR2004
-				# store parsed tle
-				list_3les.append(tle.copy())
-				# empty dict
-				tle[0] = {'fields':[], 'line_str':''}
-				tle[1] = {'fields':[], 'line_str':''}
-				tle[2] = {'fields':[], 'line_str':''}
-
-		return list_3les
-
-	def _stringify3LEDict(self, tle_dict:dict[int, "_3LELineDict"]) -> str:
-		r"""Turn a 3LE dict back into a \n delimited string."""
-		lines = [line_dict['line_str'] for line_dict in tle_dict.values()]
-		return '\n'.join(lines)
+				fp.write(elements_u.stringify3LEDict(tle_dict))
 
 class InvalidCredentialsError(Exception):
 	"""Error indicating invalid credentials used to access spacetrack."""
 	def __init__(self, message:str): # noqa: D107
 		super().__init__(message)
-
-class _3LELineDict(TypedDict): 		# noqa: N801
-	fields: list[str]
-	line_str: str
 
 class _RequestOptions(TypedDict):
 	norad_cat_id: int
@@ -283,6 +239,21 @@ def getTLEFilePath(sat_id:int) -> pathlib.Path:
 		path to file
 	"""
 	return spherapy.tle_dir.joinpath(f'{sat_id}.tle')
+
+def getStoredEpochs(sat_id:int) -> None|tuple[dt.datetime, dt.datetime|None]:
+	"""Return the start and end epoch for {sat_id}.tle .
+
+	Args:
+		sat_id: satcat id to check
+
+	Returns:
+		(first epoch datetime, last epoch datetime)
+		None if no spacetrack tle stored for sat_id
+	"""
+	tle_path = getTLEFilePath(sat_id)
+
+	return epoch_u.getStoredEpochs(tle_path)
+
 
 def doCredentialsExist() -> bool:
 	"""Checks if spacetrack credentials have been loaded into Spherapy.

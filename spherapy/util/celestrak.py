@@ -5,12 +5,14 @@ Attributes:
 	TIMEOUT: timeout for connection and request servicing by Celestrak.
 """
 
+import datetime as dt
 import logging
 import pathlib
 
 import requests
 
 import spherapy
+from spherapy.util import epoch_u
 
 MAX_RETRIES=3
 TIMEOUT=10
@@ -70,3 +72,16 @@ def getTLEFilePath(sat_id:int) -> pathlib.Path:
 		path to file
 	"""
 	return spherapy.tle_dir.joinpath(f'{sat_id}.temptle')
+
+def getStoredEpochs(sat_id:int) -> None|tuple[dt.datetime, dt.datetime|None]:
+	"""Return the start and end epoch for {sat_id}.temptle .
+
+	Args:
+		sat_id: satcat id to check
+
+	Returns:
+		(first epoch datetime, last epoch datetime)
+		None if no spacetrack tle stored for sat_id
+	"""
+	tle_path = getTLEFilePath(sat_id)
+	return epoch_u.getStoredEpochs(tle_path)

@@ -1,10 +1,28 @@
 import configparser
+from importlib import metadata, resources
+from importlib.resources.abc import Traversable
 import os
 import pathlib
 
 import platformdirs
 
 from spherapy.util import credentials
+
+
+def _creatPackagedTLEListing() -> None|dict[int,Traversable]:
+	packaged_tles = {}
+	package_file_listing = metadata.files('spherapy')
+	package_dir = resources.files('spherapy')
+	if package_file_listing is not None and len(package_file_listing) > 0:
+		for path in package_file_listing:
+			if 'TLEs' in path.parts:
+				try:
+					tle_id = int(path.stem)
+				except ValueError:
+					print("Can't import packaged TLEs, skipping...") #noqa: T201
+					return None
+				packaged_tles[tle_id] = package_dir.joinpath(f"{path.relative_to('spherapy')}")
+	return packaged_tles
 
 service_name = "spherapy"
 service_author = "MSL"
@@ -61,3 +79,6 @@ if not use_config_file:
 	spacetrack_credentials = credentials.fetchKeyringCredentials()
 else:
 	spacetrack_credentials = credentials.fetchConfigCredentials(config)
+
+
+packaged_TLEs = _creatPackagedTLEListing() 	#noqa: N816

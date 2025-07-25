@@ -5,8 +5,11 @@ Attributes:
 """
 
 import datetime as dt
+import pathlib
 
 import numpy as np
+
+from spherapy.util import elements_u
 
 GMST_epoch = dt.datetime(2000, 1, 1, 12, 0, 0)
 
@@ -97,20 +100,50 @@ def datetime2sgp4epoch(date: dt.datetime) -> float:
 	return delta.days + delta.seconds / 86400
 
 
-def findClosestDatetimeIndices(search_arr:np.ndarray[tuple[int], np.dtype[np.datetime64]],
+def findClosestDatetimeIndices(test_arr:np.ndarray[tuple[int], np.dtype[np.datetime64]],
 								source_arr:np.ndarray[tuple[int], np.dtype[np.datetime64]]) \
 								-> np.ndarray[tuple[int], np.dtype[np.int64]]:
-	"""Find the index of the closest datetime in source arr for each datetime in search_arr.
+	"""Find the index of the closest datetime in source arr for each datetime in test_arr.
+
+	Both search_arr and source_arr must be sorted.
 
 	Args:
-		search_arr: Mx1 array of datetimes, will find closest time for each element in this array
+		test_arr: Mx1 array of datetimes, will find closest time for each element in this array
 		source_arr: Nx1: array of datetimes to compare to
 
 	Returns:
 		Mx1 array of indices of source_arr
 	"""
-	source_sq_arr, search_sq_arr = np.meshgrid(source_arr,search_arr)
+	# convert to unix timestamps first to save memory
+	test_arr_fl = np.vectorize(lambda x:x.timestamp())(test_arr)
+	source_arr_fl = np.vectorize(lambda x:x.timestamp())(source_arr)
+	idx_arr = np.zeros(test_arr_fl.shape, dtype=np.int64)
+	for ii in range(len(test_arr_fl)):
+		diff = np.abs(source_arr_fl-test_arr_fl[ii])
+		idx_arr[ii] = np.argmin(diff,axis=0)
 
-	abs_diff_arr = np.vectorize(lambda x: np.abs(x.total_seconds()))(source_sq_arr - search_sq_arr)
+	return idx_arr
 
-	return np.argmin(abs_diff_arr, axis=1)
+def getStoredEpochs(tle_path:pathlib.Path) -> None|tuple[dt.datetime, dt.datetime|None]:
+	"""Return the start and end epoch for tle_path.
+
+	Args:
+		tle_path: tle file
+
+	Returns:
+		(first epoch datetime, last epoch datetime)
+		None if no spacetrack tle stored for sat_id
+	"""
+	if not tle_path.exists():
+		return None
+
+	with tle_path.open('r') as fp:
+		lines = fp.readlines()
+
+	first_tle_line_1 = elements_u.split3LELineIntoFields(lines[1])
+	last_tle_line_1 = elements_u.split3LELineIntoFields(lines[-2])
+
+	first_epoch_dt = epoch2datetime(first_tle_line_1['fields'][3])
+	last_epoch_dt = epoch2datetime(last_tle_line_1['fields'][3])
+
+	return (first_epoch_dt, last_epoch_dt)
