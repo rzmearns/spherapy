@@ -8,7 +8,7 @@ import platformdirs
 from spherapy.util import credentials
 
 
-def _creatPackagedTLEListing() -> None|dict[int,pathlib.Path]:
+def _creatPackagedTLEListing() -> None|dict[int,metadata.PackagePath]:
 	packaged_tles = {}
 	package_file_listing = metadata.files('spherapy')
 	if package_file_listing is not None and len(package_file_listing) > 0:
@@ -80,6 +80,3 @@ else:
 
 
 packaged_TLEs = _creatPackagedTLEListing() 	#noqa: N816
-if packaged_TLEs is not None:
-	for k,v in packaged_TLEs.items():
-		print(f"{k}:{v}") 	#noqa: T201

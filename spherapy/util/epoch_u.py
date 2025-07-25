@@ -5,8 +5,11 @@ Attributes:
 """
 
 import datetime as dt
+import pathlib
 
 import numpy as np
+
+from spherapy.util import elements_u
 
 GMST_epoch = dt.datetime(2000, 1, 1, 12, 0, 0)
 
@@ -116,3 +119,27 @@ def findClosestDatetimeIndices(search_arr:np.ndarray[tuple[int], np.dtype[np.dat
 	abs_diff_arr = np.vectorize(lambda x: np.abs(x.total_seconds()))(source_sq_arr - search_sq_arr)
 
 	return np.argmin(abs_diff_arr, axis=1)
+
+def getStoredEpochs(tle_path:pathlib.Path) -> None|tuple[dt.datetime, dt.datetime|None]:
+	"""Return the start and end epoch for tle_path.
+
+	Args:
+		tle_path: tle file
+
+	Returns:
+		(first epoch datetime, last epoch datetime)
+		None if no spacetrack tle stored for sat_id
+	"""
+	if not tle_path.exists():
+		return None
+
+	with tle_path.open('r') as fp:
+		lines = fp.readlines()
+
+	first_tle_line_1 = elements_u.split3LELineIntoFields(lines[1])
+	last_tle_line_1 = elements_u.split3LELineIntoFields(lines[-2])
+
+	first_epoch_dt = epoch2datetime(first_tle_line_1['fields'][3])
+	last_epoch_dt = epoch2datetime(last_tle_line_1['fields'][3])
+
+	return (first_epoch_dt, last_epoch_dt)
