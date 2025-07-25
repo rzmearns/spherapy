@@ -57,6 +57,8 @@ def getTLEFilePaths(sat_id_list:list[int], use_packaged:bool=False) -> list[path
 				path_list.append(pathlib.Path(spherapy.packaged_TLEs[sat_id]))
 		except KeyError as e:
 			raise KeyError(f'TLE for {attempted_sat_id} is not packaged with spherapy.') from e
+		else:
+			return path_list
 		return path_list
 	if spacetrack.doCredentialsExist():
 		return [ spacetrack.getTLEFilePath(sat_id) for sat_id in sat_id_list ]
