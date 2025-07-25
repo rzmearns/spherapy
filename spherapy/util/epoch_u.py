@@ -6,6 +6,8 @@ Attributes:
 
 import datetime as dt
 
+import numpy as np
+
 GMST_epoch = dt.datetime(2000, 1, 1, 12, 0, 0)
 
 
@@ -93,3 +95,22 @@ def datetime2sgp4epoch(date: dt.datetime) -> float:
 	sgp4start = dt.datetime(1949, 12, 31, 0, 0, 0, tzinfo=tzinfo)
 	delta = date - sgp4start
 	return delta.days + delta.seconds / 86400
+
+
+def findClosestDatetimeIndices(search_arr:np.ndarray[tuple[int], np.dtype[np.datetime64]],
+								source_arr:np.ndarray[tuple[int], np.dtype[np.datetime64]]) \
+								-> np.ndarray[tuple[int], np.dtype[np.int64]]:
+	"""Find the index of the closest datetime in source arr for each datetime in search_arr.
+
+	Args:
+		search_arr: Mx1 array of datetimes, will find closest time for each element in this array
+		source_arr: Nx1: array of datetimes to compare to
+
+	Returns:
+		Mx1 array of indices of source_arr
+	"""
+	source_sq_arr, search_sq_arr = np.meshgrid(source_arr,search_arr)
+
+	abs_diff_arr = np.vectorize(lambda x: np.abs(x.total_seconds()))(source_sq_arr - search_sq_arr)
+
+	return np.argmin(abs_diff_arr, axis=1)
