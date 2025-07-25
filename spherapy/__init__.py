@@ -20,7 +20,7 @@ def _creatPackagedTLEListing() -> None|dict[int,metadata.PackagePath]:
 				except ValueError:
 					print("Can't import packaged TLEs, skipping...") #noqa: T201
 					return None
-				packaged_tles[tle_id] = package_dir.joinpath(path.name)
+				packaged_tles[tle_id] = package_dir.joinpath(f"{path.relative_to('spherapy')}")
 	return packaged_tles
 
 service_name = "spherapy"
