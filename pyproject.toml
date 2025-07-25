@@ -1,5 +1,6 @@
 [build-system]
-requires = ["setuptools >= 77.0.3"]
+requires = ["setuptools >= 77.0.3",
+						 "setup_scm >= 8.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -52,8 +53,15 @@ dev = [
 [project.scripts]
 spherapy-create-credentials = "spherapy.scripts:create_credentials"
 
+[tool.setuptools]
+include-package-data = true
+
 [tool.setuptools.packages.find]
-exclude = ["data"]
+namespaces = true
+where = ["spherapy"]
+
+[tool.setuptools.package-data]
+"spherapy.data.TLEs" = ["*.tle"]
 
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.
