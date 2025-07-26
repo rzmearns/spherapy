@@ -2,7 +2,19 @@
 
 # API Overview
 
-## Modules
+## Public API
+
+- [`orbit.Orbit`](./orbit.md#class-orbit): Timestamped orbital data for a satellite
+	- [`Orbit.fromAnalyticalOrbitalParam`](./orbit.md#classmethod-fromAnalyticalOrbitalParam)
+	- [`Orbit.fromListOfPositions`](./orbit.md#classmethod-fromListOfPositions)
+	- [`Orbit.fromPropagatedOrbitalParam`](./orbit.md#classmethod-fromPropagatedOrbitalParam)
+	- [`Orbit.fromTLE`](./orbit.md#classmethod-fromTLE)
+- [`timespan.TimeSpan`](./timespan.md#class-timespan): A series of timestamps.
+- [`updater.getStoredEpochLimits`](./updater.md#function-getstoredepochlimits): Returns limiting epochs for the stored TLEs for each sat in sat_id_list.
+- [`updater.getTLEFilePaths`](./updater.md#function-gettlefilepaths): Fetch list of paths to TLE files.
+- [`updater.updateTLEs`](./updater.md#function-updatetles): Fetch most recent TLE for provided list of satcat IDs.
+
+## All Modules
 
 - [`orbit`](./orbit.md#module-orbit): Class for orbital data.
 - [`timespan`](./timespan.md#module-timespan): Class for series of timestamps.
@@ -17,7 +29,7 @@
 - [`util.orbital_u`](./util.orbital_u.md#module-utilorbital_u): Utility functions for orbital calculations.
 - [`util.spacetrack`](./util.spacetrack.md#module-utilspacetrack): Functions to fetch TLEs from Spacetrack.
 
-## Classes
+## All Classes
 
 - [`orbit.Orbit`](./orbit.md#class-orbit): Timestamped orbital data for a satellite, coordinate system depending on the central body.
 - [`orbit.OrbitAttrDict`](./orbit.md#class-orbitattrdict): A TypedDict providing type annotations for the Orbit class.
@@ -27,7 +39,7 @@
 - [`exceptions.OutOfRangeError`](./util.exceptions.md#class-outofrangeerror): The value is out of the acceptable range.
 - [`spacetrack.InvalidCredentialsError`](./util.spacetrack.md#class-invalidcredentialserror): Error indicating invalid credentials used to access spacetrack.
 
-## Functions
+## All Functions
 
 - [`updater.getStoredEpochLimits`](./updater.md#function-getstoredepochlimits): Returns limiting epochs for the stored TLEs for each sat in sat_id_list.
 - [`updater.getTLEFilePaths`](./updater.md#function-gettlefilepaths): Fetch list of paths to TLE files.
