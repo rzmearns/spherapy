@@ -1,3 +1,7 @@
+## About
+Spherapy is a convenience wrapper around the fantastic libraries [skyfield](https://pypi.org/project/skyfield/), [spacetrack](https://pypi.org/project/spacetrack/), and [hapsira](https://pypi.org/project/hapsira/) (a maintained poliastro fork). It provides a consistent and straightforward method to fetch historical TLEs for known satellites, update these TLEs as required, propagate the orbits, and turn these into commonly used variables: satellite positions in various frames, velocities, etc. without worrying about the implementation details of each library.  
+Additionally, rather than use a historical TLE, orbits can be constructed from analytical orbital parameters, propagated orbital parameters, or a list of positions.
+
 ## Installation
 - install to use the package:
   1. install from git
@@ -39,14 +43,14 @@ o = spherapy.orbit.Orbit.fromTLE(t, TLE_paths[0])
 -	from orbital parameters
 ```python
 o = spherapy.orbit.Orbit.fromAnalyticalOrbitalParam(timespan, body='Earth',
-																										 a=6978,
-																										 ecc=0,
-																										 inc=0,
-																										 raan=0,
-																										 argp=0,
-																										 mean_nu=0,
-																										 name='My Analytical Orbit',
-																										 astrobodies=True)
+					 a=6978,
+					 ecc=0,
+					 inc=0,
+					 raan=0,
+					 argp=0,
+					 mean_nu=0,
+					 name='My Analytical Orbit',
+					 astrobodies=True)
 ```  
 
 #### Full TLE example (for copy paste)
@@ -67,14 +71,14 @@ import spherapy.timespan
 import spherapy.orbit
 t = spherapy.timespan.TimeSpan(datetime.datetime(2024,10,15,0,0,1),'1S','90M')
 o = spherapy.orbit.Orbit.fromAnalyticalOrbitalParam(timespan, body='Earth',
-																										 a=6978,
-																										 ecc=0,
-																										 inc=0,
-																										 raan=0,
-																										 argp=0,
-																										 mean_nu=0,
-																										 name='My Analytical Orbit',
-																										 astrobodies=True)
+					 a=6978,
+					 ecc=0,
+					 inc=0,
+					 raan=0,
+					 argp=0,
+					 mean_nu=0,
+					 name='My Analytical Orbit',
+					 astrobodies=True)
 ```
 
 ## SpaceTrack Credentials

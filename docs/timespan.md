@@ -1,118 +1,249 @@
+<!-- markdownlint-disable -->
 
-## TimeSpan Objects
+<a href="../spherapy/timespan.py#L0"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
-```python
-class TimeSpan(object)
-```
+# <kbd>module</kbd> `timespan`
+Class for series of timestamps. 
 
-### \_\_init\_\_
+This module provides: 
+- TimeSpan: a series of timestamps to be used by an orbit object 
 
-```python
-def __init__(t0, timestep='1S', timeperiod='10S', timezone='00:00')
-```
 
-Create a TimeSpan object, times are assumed to be in UTC
 
-An array of dates as datetimes is accessed with TimeSpan.as_datetime()  
-An array of dates as astropy.time is accessed with TimeSpan.as_astropy()
+---
 
-Does not handle leap seconds
+<a href="../spherapy/timespan.py#L21"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
-**Parameters**  
-t0 : {datetime.datetime}  
-	datetime object defining the start of the TimeSpan
+## <kbd>class</kbd> `TimeSpan`
+A series of timestamps. 
 
-num_steps: int  
-	Number of timesteps
 
-timestep : {str}, optional  
-	String describing the time step of the time span. The string is constructed 
-	as an integer or float, followed by a time unit: (d)ays,
-	(H)ours, (M)inutes, (S)econds, (mS) milliseconds, (uS) microseconds
-	(the default is '1S', which is one second.)
 
-timeperiod : {str}, optional  
-	String describing the time period of the time span. The string is constructed 
-	as an integer or float, followed by a time unit: (y)ears, (m)onths, (W)eeks, (d)ays,
-	(H)ours, (M)inutes, (S)econds, (mS) milliseconds, (uS) microseconds
-	(the default is '1d', which is one day.)
+**Attributes:**
+ 
+ - <b>`start`</b>:  The first timestamp 
+ - <b>`end`</b>:  The last timestamp 
+ - <b>`time_step`</b>:  The difference between timestamps in seconds.
+     - Can be None if irregular steps 
+ - <b>`time_period`</b>:  The difference between end and start in seconds 
 
-timezone : {datetime.timezone}, optional  
-	Timezone to be implicitly assumed for the timespan. Methods can check against 
-	TimeSpan.timezone for instances.
+<a href="../spherapy/timespan.py#L32"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
-**Raises**  
-ValueError
-
-### asAstropy
+### <kbd>method</kbd> `__init__`
 
 ```python
-def asAstropy(*args, scale='utc')
+__init__(t0: datetime, timestep: str = '1S', timeperiod: str = '10S')
 ```
 
-Return ndarray of TimeSpan as astropy.time objects
+Creates a series of timestamps in UTC. 
 
-**Returns**  
-ndarray
+Difference between each timestamp = timestep Total duration = greatest integer number of timesteps less than timeperiod  
+If timeperiod is an integer multiple of timestep,  then TimeSpan[-1] - TimeSpan[0] = timeperiod  
+If timeperiod is NOT an integer multiple of timestep,  then TimeSpan[-1] = int(timeperiod/timestep) (Note: int cast, not round) 
+
+Does not account for Leap seconds, similar to all Posix compliant UTC based time  representations. see: https://numpy.org/doc/stable/reference/arrays.datetime.html#datetime64-shortcomings  for equivalent shortcomings.  
+Always contains at least two timestamps 
+
+**Args**
+ - t0: datetime defining the start of the TimeSpan.
+     - If timezone naive, assumed to be in UTC
+     - If timezone aware, will be converted to UTC
+ - timestep: String describing the time step of the time span.
+     - The string is constructed as an integer or float, followed by a time unit:  (d)ays, (H)ours, (M)inutes, (S)econds, (mS) milliseconds, (uS) microseconds  (the default is '1S') 
+ - timeperiod: String describing the time period of the time span.
+     - The string is constructed as an integer or float, followed by a time unit:  (d)ays, (H)ours, (M)inutes, (S)econds, (mS) milliseconds, (uS) microseconds  (the default is '1d') 
 
 
-### asDatetime
+
+**Raises:**
+ 
+ValueError 
+
+
+
+
+---
+
+<a href="../spherapy/timespan.py#L153"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+### <kbd>method</kbd> `asAstropy`
 
 ```python
-def asDatetime(*args)
+asAstropy(idx: None | int = None, scale: str = 'utc') → Time
 ```
 
-Return ndarray of TimeSpan as datetime objects	
-
-**Returns**  
-ndarray
+Return ndarray of TimeSpan as astropy.time objects. 
 
 
 
-### asSkyfield
+**Args:**
+ 
+ - <b>`idx`</b>:  timestamp index to return inside an astropyTime object  if no index supplied, returns all timestamps 
+ - <b>`scale`</b>:  astropy time scale, can be one of  ('tai', 'tcb', 'tcg', 'tdb', 'tt', 'ut1', 'utc') 
+
+
+
+**Returns:**
+ 
+ndarray 
+
+---
+
+<a href="../spherapy/timespan.py#L170"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+### <kbd>method</kbd> `asDatetime`
 
 ```python
-def asSkyfield(*args)
+asDatetime(
+    idx: None | int = None
+) → datetime | ndarray[tuple[int], dtype[datetime64]]
 ```
 
-Return TimeSpan element as Skyfield Time object
-
-**Returns**  
-Skyfield Time
+Return ndarray of TimeSpan as datetime objects. 
 
 
 
-### asText
+**Args:**
+ 
+ - <b>`idx`</b>:  timestamp index to return as a datetime  If no index supplied, returns whole array 
+
+
+
+**Returns:**
+ 
+ndarray 
+
+---
+
+<a href="../spherapy/timespan.py#L186"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+### <kbd>method</kbd> `asSkyfield`
 
 ```python
-def asText(*args)
+asSkyfield(idx: int) → Time
 ```
 
+Return TimeSpan element as Skyfield Time object. 
 
 
-### secondsSinceStart
+
+**Args:**
+ 
+ - <b>`idx`</b>:  timestamp index to return as skyfield time object 
+
+
+
+**Returns:**
+ 
+Skyfield Time 
+
+---
+
+<a href="../spherapy/timespan.py#L200"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+### <kbd>method</kbd> `asText`
 
 ```python
-def secondsSinceStart()
+asText(idx: int) → str
 ```
 
-Return ndarray with the seconds of all timesteps since the beginning.
+Returns a text representation of a particular timestamp. 
+
+Timestamp will be formatted as YYYY-mm-dd HH:MM:SS 
 
 
 
-### getClosest
+**Args:**
+ 
+ - <b>`idx`</b>:  timestamp index to format 
+
+
+
+**Returns:**
+
+ str: 
+
+---
+
+<a href="../spherapy/timespan.py#L321"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+### <kbd>method</kbd> `cherryPickFromIndices`
 
 ```python
-def getClosest(t_search)
+cherryPickFromIndices(idxs: int | tuple | slice)
 ```
 
-Find the closest time in a TimeSpan
+Adjust TimeSpan to only contain the indices specified by idxs. 
 
-**Parameters**  
-t_search : {datetime}
-	time to find
 
-**Returns**  
-datetime, int  
-	Closest datetime in TimeSpan, index of closest date in TimeSpan
+
+**Args:**
+ 
+ - <b>`idxs`</b>:  numpy style indexing of TimeSpan 
+
+---
+
+<a href="../spherapy/timespan.py#L333"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+### <kbd>classmethod</kbd> `fromDatetime`
+
+```python
+fromDatetime(
+    dt_arr: ndarray[tuple[int], dtype[datetime64]],
+    timezone: timezone = datetime.timezone.utc
+) → TimeSpan
+```
+
+Create a TimeSpan from an array of datetime objects. 
+
+
+
+**Args:**
+ 
+ - <b>`dt_arr`</b>:  1D array of datetime objects 
+ - <b>`timezone`</b>:  timezone to apply to each element of datetime array. 
+ - <b>`Default`</b>:  dt.timezone.utc 
+
+---
+
+<a href="../spherapy/timespan.py#L225"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+### <kbd>method</kbd> `getClosest`
+
+```python
+getClosest(t_search: datetime) → tuple[datetime, int]
+```
+
+Find the closest time in a TimeSpan. 
+
+Parameters 
+---------- t_search : datetime to search for in TimeSpan  If timezone naive, assumed to be in UTC  If timezone aware, will be converted to UTCtime to find 
+
+
+
+**Returns:**
+ 
+------- datetime, int  Closest datetime in TimeSpan, index of closest date in TimeSpan 
+
+---
+
+<a href="../spherapy/timespan.py#L213"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+### <kbd>method</kbd> `secondsSinceStart`
+
+```python
+secondsSinceStart() → ndarray[tuple[int], dtype[float64]]
+```
+
+Return ndarray with the seconds of all timesteps since the beginning. 
+
+
+
+**Returns:**
+  array of seconds since start for each timestamp 
+
+
+
+
+---
 
