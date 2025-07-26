@@ -1,3 +1,7 @@
+## About
+Spherapy is a convenience wrapper around the fantastic libraries [skyfield](https://pypi.org/project/skyfield/), [spacetrack](https://pypi.org/project/spacetrack/), and [hapsira](https://pypi.org/project/hapsira/) (a maintained poliastro fork). It provides a consistent and straightforward method to fetch historical TLEs for known satellites, update these TLEs as required, propagate the orbits, and turn these into commonly used variables: satellite positions in various frames, velocities, etc. without worrying about the implementation details of each library.  
+Additionally, rather than use a historical TLE, orbits can be constructed from analytical orbital parameters, propagated orbital parameters, or a list of positions.
+
 ## Installation
 - install to use the package:
   1. install from git
