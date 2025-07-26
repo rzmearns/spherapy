@@ -1,11 +1,5 @@
 import configparser
 from importlib import metadata, resources
-
-try:
-	from importlib.resources.abc import Traversable
-except ModuleNotFoundError:
-	# python 3.10
-	from importlib_resources.abc import Traversable
 import os
 import pathlib
 
@@ -14,7 +8,7 @@ import platformdirs
 from spherapy.util import credentials
 
 
-def _creatPackagedTLEListing() -> None|dict[int,Traversable]:
+def _creatPackagedTLEListing() -> None|dict[int,pathlib.Path]:
 	packaged_tles = {}
 	package_file_listing = metadata.files('spherapy')
 	package_dir = resources.files('spherapy')
@@ -26,7 +20,9 @@ def _creatPackagedTLEListing() -> None|dict[int,Traversable]:
 				except ValueError:
 					print("Can't import packaged TLEs, skipping...") #noqa: T201
 					return None
-				packaged_tles[tle_id] = package_dir.joinpath(f"{path.relative_to('spherapy')}")
+				traversable = package_dir.joinpath(f"{path.relative_to('spherapy')}")
+				resource_path = pathlib.Path(f'{traversable}')
+				packaged_tles[tle_id] = resource_path
 	return packaged_tles
 
 service_name = "spherapy"
