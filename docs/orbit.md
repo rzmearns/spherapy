@@ -46,45 +46,45 @@ Timestamped orbital data for a satellite, coordinate system depending on the cen
  - <b>`satcat_id`</b>:  NORAD satellite catelogue ID (if generated from a TLE) 
  - <b>`gen_type`</b>:  How the orbit was generated 
  - <b>`TLE_epochs`</b>:  Nx1 numpy array of TLE epoch used for propagation at each timestamp 
-   - `units`:  TLE epoch 
+   - units:  TLE epoch 
  - <b>`pos`</b>:  Nx3 numpy array of cartesian coordinates of the position of the satellite  at each timestamp 
-   - `units`:  km 
-   - `frame`:  ECI 
+   - units:  km 
+   - frame:  ECI 
  - <b>`vel`</b>:  Nx3 numpy array of cartesian velocities of the satellite at each timestamp 
-   - `units`:  m/s 
-   - `frame`:  ECI 
+   - units:  m/s 
+   - frame:  ECI 
  - <b>`pos_ecef`</b>:  Nx3 numpy array of cartesian coordinates of the position of the satellite  at each timestamp 
-   - `units`:  km 
-   - `frame`:  ECEF 
+   - units:  km 
+   - frame:  ECEF 
  - <b>`vel_ecef`</b>:  Nx3 numpy array of cartesian velocities of the satellite at each timestamp 
-   - `units`:  m/s 
-   - `frame`:  ECEF 
+   - units:  m/s 
+   - frame:  ECEF 
  - <b>`lat`</b>:  Nx1 numpy array of central body latitudes of the satellite at each timestamp 
-   - `units`:  degrees 
+   - units:  degrees 
  - <b>`lon`</b>:  Nx1 numpy array of central body longitudes of the satellite at each timestamp 
-   - `units`:  degrees 
+   - units:  degrees 
  - <b>`sun_pos`</b>:  Nx3 numpy array of cartesian coordinates of the position of the Sun  at each timestamp 
-   - `units`:  km 
-   - `frame`:  ECI 
+   - units:  km 
+   - frame:  ECI 
  - <b>`moon_pos`</b>:  Nx3 numpy array of cartesian coordinates of the position of the Moon  at each timestamp 
-   - `units`:  km 
-   - `frame`:  ECI 
+   - units:  km 
+   - frame:  ECI 
  - <b>`alt`</b>:  Nx1 numpy array of altitudes above central body at each timestamp 
-   - `units`:  km 
+   - units:  km 
  - <b>`eclipse`</b>:  Nx1 numpy array of flag indicating if satellite is eclipsed at each timestamp 
  - <b>`central_body`</b>:  body the satellite is orbiting 
  - <b>`period`</b>:  orbital period in secs 
  - <b>`period_steps`</b>:  number of TimeSpan timestamps required to complete an orbit 
  - <b>`semi_major`</b>:  Nx1 numpy array of orbit semi-major axis calculated at that timestep 
-   - `units`:  km will be constant if no orbital maneauvers 
+   - units:  km will be constant if no orbital maneauvers 
  - <b>`ecc`</b>:  Nx1 numpy array of orbit eccentricity calculated at that timestep 
-   - `units`:  unitless will be constant if no orbital maneauvers 
+   - units:  unitless will be constant if no orbital maneauvers 
  - <b>`inc`</b>:  Nx1 numpy array of orbit inclination calculated at that timestep 
-   - `units`:  degree will be constant if no orbital maneauvers 
+   - units:  degree will be constant if no orbital maneauvers 
  - <b>`raan`</b>:  Nx1 numpy array of orbit RAAN calculated at that timestep 
-   - `units`:  degree will be constant if no orbital maneauvers 
+   - units:  degree will be constant if no orbital maneauvers 
  - <b>`argp`</b>:  Nx1 numpy array of orbit Arg Perigee calculated at that timestep 
-   - `units`:  degree will be constant if no orbital maneauvers 
+   - units:  degree will be constant if no orbital maneauvers 
 
 <a href="../spherapy/orbit.py#L219"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -177,14 +177,14 @@ Satellite position is defined by pos, while sun and moon positions are optional,
  
  - <b>`timespan`</b>:  Timespan over which orbit is to be simulated 
  - <b>`pos`</b>:  Nx3 numpy array of cartesian coordinates of the position of the satellite  at each timestamp 
-   - `units`:  km 
-   - `frame`:  ECI 
+   - units:  km 
+   - frame:  ECI 
  - <b>`sun_pos`</b>:  [Optional] Nx3 numpy array of cartesian coordinates of the position of the Sun  at each timestamp 
-   - `units`:  km 
-   - `frame`:  ECI 
+   - units:  km 
+   - frame:  ECI 
  - <b>`moon_pos`</b>:  [Optional] Nx3 numpy array of cartesian coordinates of the position of the  Moon at each timestamp 
-   - `units`:  km 
-   - `frame`:  ECI 
+   - units:  km 
+   - frame:  ECI 
 
 
 
@@ -215,8 +215,8 @@ Creat an obit by explicitly specifying the position of the satellite at each poi
  
  - <b>`timespan`</b>:  Timespan over which orbit is to be simulated 
  - <b>`positions`</b>:  Nx3 numpy array of cartesian coordinates of the position of the satellite  at each timestamp 
-   - `units`:  km 
-   - `frame`:  ECI 
+   - units:  km 
+   - frame:  ECI 
  - <b>`astrobodies`</b>:  [Optional] Flag to calculate Sun and Moon positions at timestamps  Default is False 
 
 
