@@ -5,10 +5,10 @@
 ## Public API
 
 - [`orbit.Orbit`](./orbit.md#class-orbit): Timestamped orbital data for a satellite
-	- [`Orbit.fromAnalyticalOrbitalParam`](./orbit.md#classmethod-fromAnalyticalOrbitalParam)
-	- [`Orbit.fromListOfPositions`](./orbit.md#classmethod-fromListOfPositions)
-	- [`Orbit.fromPropagatedOrbitalParam`](./orbit.md#classmethod-fromPropagatedOrbitalParam)
-	- [`Orbit.fromTLE`](./orbit.md#classmethod-fromTLE)
+	- [`Orbit.fromAnalyticalOrbitalParam`](./orbit.md#classmethod-fromanalyticalorbitalparam)
+	- [`Orbit.fromListOfPositions`](./orbit.md#classmethod-fromlistofpositions)
+	- [`Orbit.fromPropagatedOrbitalParam`](./orbit.md#classmethod-frompropagatedorbitalparam)
+	- [`Orbit.fromTLE`](./orbit.md#classmethod-fromtle)
 - [`timespan.TimeSpan`](./timespan.md#class-timespan): A series of timestamps.
 - [`updater.getStoredEpochLimits`](./updater.md#function-getstoredepochlimits): Returns limiting epochs for the stored TLEs for each sat in sat_id_list.
 - [`updater.getTLEFilePaths`](./updater.md#function-gettlefilepaths): Fetch list of paths to TLE files.
