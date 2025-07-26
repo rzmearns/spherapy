@@ -7,10 +7,11 @@ Attributes:
 import datetime as dt
 import logging
 import pathlib
+
 from typing import TypedDict
+from typing_extensions import NotRequired
 
 import spacetrack as sp
-from typing_extensions import NotRequired
 
 import spherapy
 from spherapy.util import elements_u, epoch_u

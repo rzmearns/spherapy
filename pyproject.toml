@@ -15,6 +15,7 @@ dependencies = [
 		"spacetrack==1.2.0",
 		"keyring>=25.0.0",
 		"platformdirs==4.3.8",
+		"importlib_resources>=6.5.2"
 	]
 
 requires-python = ">=3.10"
@@ -82,9 +83,6 @@ indent-width = 4
 
 output-format = "grouped"
 
-# Python version (3.10)
-# this takes precedence over pyproject.toml requires-python
-target-version = "py310"
 # Ruff version
 required-version = ">=0.12"
 respect-gitignore = true
@@ -203,6 +201,7 @@ required-imports = []
 section-order = [
   "future",
   "standard-library",
+  "typing",
   "third-party",
   "first-party",
   "local-folder",
@@ -213,7 +212,8 @@ split-on-trailing-comma = false
 known-first-party = ["satplot"]
 
 [tool.ruff.lint.isort.sections]
-"testing" = ["pytest"]
+"testing" = ["pytest","pytest-check"]
+"typing" = ["types","typing","typing_extensions"]
 
 
 [tool.ruff.lint.pydocstyle]

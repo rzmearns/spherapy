@@ -5,7 +5,9 @@ This module provides:
 """
 import datetime as dt
 import logging
-from typing import Self, cast
+
+from typing import cast
+from typing_extensions import Self
 
 from astropy.time import Time as astropyTime
 from dateutil.relativedelta import relativedelta
