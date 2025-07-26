@@ -21,9 +21,13 @@ lint:
     - ruff check
 
 test:
+  image: "python:$VERSION-slim"
   script:
     - export SPHERAPY_CONFIG_DIR='.'
     - pytest
+  parallel:
+    matrix:
+      - VERSION: ['3.10','3.11','3.12']
 
 type:
   script:
