@@ -23,7 +23,8 @@ A series of timestamps.
  
  - <b>`start`</b>:  The first timestamp 
  - <b>`end`</b>:  The last timestamp 
- - <b>`time_step`</b>:  The difference between timestamps in seconds  Can be None if irregular steps 
+ - <b>`time_step`</b>:  The difference between timestamps in seconds.
+     - Can be None if irregular steps 
  - <b>`time_period`</b>:  The difference between end and start in seconds 
 
 <a href="../spherapy/timespan.py#L32"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
@@ -36,17 +37,27 @@ __init__(t0: datetime, timestep: str = '1S', timeperiod: str = '10S')
 
 Creates a series of timestamps in UTC. 
 
-Difference between each timestamp = timestep Total duration = greatest integer number of timesteps less than timeperiod  If timeperiod is an integer multiple of timestep,  then TimeSpan[-1] - TimeSpan[0] = timeperiod  If timeperiod is NOT an integer multiple of timestep,  then TimeSpan[-1] = int(timeperiod/timestep) (Note: int cast, not round) 
+Difference between each timestamp = timestep Total duration = greatest integer number of timesteps less than timeperiod  
+If timeperiod is an integer multiple of timestep,  then TimeSpan[-1] - TimeSpan[0] = timeperiod  
+If timeperiod is NOT an integer multiple of timestep,  then TimeSpan[-1] = int(timeperiod/timestep) (Note: int cast, not round) 
 
-Does not account for Leap seconds, similar to all Posix compliant UTC based time  representations. see: https://numpy.org/doc/stable/reference/arrays.datetime.html#datetime64-shortcomings  for equivalent shortcomings. Always contains at least two timestamps 
+Does not account for Leap seconds, similar to all Posix compliant UTC based time  representations. see: https://numpy.org/doc/stable/reference/arrays.datetime.html#datetime64-shortcomings  for equivalent shortcomings.  
+Always contains at least two timestamps 
 
-Parameters t0: datetime defining the start of the TimeSpan.  If timezone naive, assumed to be in UTC  If timezone aware, will be converted to UTC timestep: String describing the time step of the time span.  The string is constructed as an integer or float, followed by a time unit:  (d)ays, (H)ours, (M)inutes, (S)econds, (mS) milliseconds, (uS) microseconds  (the default is '1S') timeperiod:     String describing the time period of the time span.  The string is constructed as an integer or float, followed by a time unit:  (d)ays, (H)ours, (M)inutes, (S)econds, (mS) milliseconds, (uS) microseconds  (the default is '1d') 
+**Args**
+ - t0: datetime defining the start of the TimeSpan.
+     - If timezone naive, assumed to be in UTC
+     - If timezone aware, will be converted to UTC
+ - timestep: String describing the time step of the time span.
+     - The string is constructed as an integer or float, followed by a time unit:  (d)ays, (H)ours, (M)inutes, (S)econds, (mS) milliseconds, (uS) microseconds  (the default is '1S') 
+ - timeperiod: String describing the time period of the time span.
+     - The string is constructed as an integer or float, followed by a time unit:  (d)ays, (H)ours, (M)inutes, (S)econds, (mS) milliseconds, (uS) microseconds  (the default is '1d') 
 
 
 
 **Raises:**
  
------- ValueError 
+ValueError 
 
 
 
@@ -74,7 +85,7 @@ Return ndarray of TimeSpan as astropy.time objects.
 
 **Returns:**
  
-------- ndarray 
+ndarray 
 
 ---
 
@@ -100,7 +111,7 @@ Return ndarray of TimeSpan as datetime objects.
 
 **Returns:**
  
-------- ndarray 
+ndarray 
 
 ---
 
@@ -124,7 +135,7 @@ Return TimeSpan element as Skyfield Time object.
 
 **Returns:**
  
-------- Skyfield Time 
+Skyfield Time 
 
 ---
 
@@ -149,6 +160,7 @@ Timestamp will be formatted as YYYY-mm-dd HH:MM:SS
 
 
 **Returns:**
+
  str: 
 
 ---
@@ -235,4 +247,3 @@ Return ndarray with the seconds of all timesteps since the beginning.
 
 ---
 
-_This file was automatically generated via [lazydocs](https://github.com/ml-tooling/lazydocs)._

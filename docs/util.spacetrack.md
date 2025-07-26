@@ -31,7 +31,8 @@ updateTLEs(
 
 Fetch most recent TLE for satcat IDs from spacetrack. 
 
-Fetch most recent TLEs for provided list of satcat IDs, and append to file.  If no TLE file yet exists, will download all historical TLEs Will try MAX_RETRIES before raising a TimeoutError 
+Fetch most recent TLEs for provided list of satcat IDs, and append to file.  
+If no TLE file yet exists, will download all historical TLEs Will try MAX_RETRIES before raising a TimeoutError 
 
 
 
@@ -148,4 +149,4 @@ __init__(message: str)
 
 ---
 
-_This file was automatically generated via [lazydocs](https://github.com/ml-tooling/lazydocs)._
+

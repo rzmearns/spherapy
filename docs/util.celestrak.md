@@ -29,7 +29,8 @@ updateTLEs(sat_id_list: list[int]) → list[int]
 
 Fetch most recent TLE for satcat IDs from celestrak. 
 
-Fetch most recent TLE for provided list of satcat IDs, and store in file. Will try MAX_RETRIES before raising a ValueError 
+Fetch most recent TLE for provided list of satcat IDs, and store in file.  
+Will try MAX_RETRIES before raising a ValueError 
 
 
 

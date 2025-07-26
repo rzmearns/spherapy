@@ -11,9 +11,6 @@ Utility functions for converting different epochs.
  
  - <b>`GMST_epoch`</b>:  [description] 
 
-**Global Variables**
----------------
-- **GMST_epoch**
 
 ---
 

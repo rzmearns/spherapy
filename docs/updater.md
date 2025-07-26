@@ -18,7 +18,9 @@ updateTLEs(sat_id_list: list[int]) → list[int]
 
 Fetch most recent TLE for provided list of satcat IDs. 
 
-Fetch most recent TLE for provided list of satcat IDs, If credentials are stored, use Spacetrack as TLE source, this will fetch all historical  TLEs for that satcat ID (from most recent stored TLE up to current) If no credentials are stored, use Celestrak as TLE source, this will fetch only the most  recent TLE 
+Fetch most recent TLE for provided list of satcat IDs,  
+If credentials are stored, use Spacetrack as TLE source, this will fetch all historical TLEs for that satcat ID (from most recent stored TLE up to current)  
+If no credentials are stored, use Celestrak as TLE source, this will fetch only the most  recent TLE 
 
 
 
@@ -44,7 +46,10 @@ getTLEFilePaths(sat_id_list: list[int], use_packaged: bool = False) → list[Pat
 
 Fetch list of paths to TLE files. 
 
-Fetch paths to the file storing the list of TLEs for each provided satcat ID If credentials are stored, return path containing all historical TLEs (fetched from Spacetrack) If no credentials are stored, return path to .temptle containing only most recent TLE  (from Celestrak) You can force the use of TLE data packaged with spherapy by setting use_packaged=True  This data will be out of date, and should only be used in examples. 
+Fetch paths to the file storing the list of TLEs for each provided satcat ID  
+If credentials are stored, return path containing all historical TLEs (fetched from Spacetrack)  
+If no credentials are stored, return path to .temptle containing only most recent TLE  (from Celestrak)  
+You can force the use of TLE data packaged with spherapy by setting use_packaged=True  This data will be out of date, and should only be used in examples. 
 
 
 

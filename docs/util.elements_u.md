@@ -55,7 +55,11 @@ dictify3LEs(lines: list[str]) → list[dict[int, ElementsLineDict]]
 
 Turn list of strings into list of dicts storing TLE info. 
 
-dict:  key: line number (0-2)  value: dict  key: 'fields' | 'line_str'  value: 'list of fields as strings' | original TLE line str 
+- dict:  
+	- key: line number (0-2)
+	- value: dict  
+			- key: 'fields' | 'line_str'
+			- value: 'list of fields as strings' | original TLE line str 
 
 
 ---

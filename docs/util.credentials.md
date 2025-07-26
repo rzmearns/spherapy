@@ -5,9 +5,6 @@
 # <kbd>module</kbd> `util.credentials`
 Functions to fetch and store spacetrack credentials on the system. 
 
-**Global Variables**
----------------
-- **USERNAME_KEY**
 
 ---
 
