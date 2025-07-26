@@ -1,6 +1,11 @@
 import configparser
 from importlib import metadata, resources
-from importlib.resources.abc import Traversable
+
+try:
+	from importlib.resources.abc import Traversable
+except ModuleNotFoundError:
+	# python 3.10
+	from importlib_resources.abc import Traversable
 import os
 import pathlib
 
