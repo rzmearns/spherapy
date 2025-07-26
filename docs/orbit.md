@@ -46,46 +46,45 @@ Timestamped orbital data for a satellite, coordinate system depending on the cen
  - <b>`satcat_id`</b>:  NORAD satellite catelogue ID (if generated from a TLE) 
  - <b>`gen_type`</b>:  How the orbit was generated 
  - <b>`TLE_epochs`</b>:  Nx1 numpy array of TLE epoch used for propagation at each timestamp 
- - <b>`units`</b>:  TLE epoch 
+   - `units`:  TLE epoch 
  - <b>`pos`</b>:  Nx3 numpy array of cartesian coordinates of the position of the satellite  at each timestamp 
- - <b>`units`</b>:  km 
- - <b>`frame`</b>:  ECI 
+   - `units`:  km 
+   - `frame`:  ECI 
  - <b>`vel`</b>:  Nx3 numpy array of cartesian velocities of the satellite at each timestamp 
- - <b>`units`</b>:  m/s 
- - <b>`frame`</b>:  ECI 
+   - `units`:  m/s 
+   - `frame`:  ECI 
  - <b>`pos_ecef`</b>:  Nx3 numpy array of cartesian coordinates of the position of the satellite  at each timestamp 
- - <b>`units`</b>:  km 
- - <b>`frame`</b>:  ECEF 
+   - `units`:  km 
+   - `frame`:  ECEF 
  - <b>`vel_ecef`</b>:  Nx3 numpy array of cartesian velocities of the satellite at each timestamp 
- - <b>`units`</b>:  m/s 
- - <b>`frame`</b>:  ECEF 
+   - `units`:  m/s 
+   - `frame`:  ECEF 
  - <b>`lat`</b>:  Nx1 numpy array of central body latitudes of the satellite at each timestamp 
- - <b>`units`</b>:  degrees 
+   - `units`:  degrees 
  - <b>`lon`</b>:  Nx1 numpy array of central body longitudes of the satellite at each timestamp 
- - <b>`units`</b>:  degrees 
+   - `units`:  degrees 
  - <b>`sun_pos`</b>:  Nx3 numpy array of cartesian coordinates of the position of the Sun  at each timestamp 
- - <b>`units`</b>:  km 
- - <b>`frame`</b>:  ECI 
+   - `units`:  km 
+   - `frame`:  ECI 
  - <b>`moon_pos`</b>:  Nx3 numpy array of cartesian coordinates of the position of the Moon  at each timestamp 
- - <b>`units`</b>:  km 
- - <b>`frame`</b>:  ECI 
+   - `units`:  km 
+   - `frame`:  ECI 
  - <b>`alt`</b>:  Nx1 numpy array of altitudes above central body at each timestamp 
- - <b>`units`</b>:  km 
+   - `units`:  km 
  - <b>`eclipse`</b>:  Nx1 numpy array of flag indicating if satellite is eclipsed at each timestamp 
- - <b>`units`</b>:  km 
  - <b>`central_body`</b>:  body the satellite is orbiting 
  - <b>`period`</b>:  orbital period in secs 
  - <b>`period_steps`</b>:  number of TimeSpan timestamps required to complete an orbit 
  - <b>`semi_major`</b>:  Nx1 numpy array of orbit semi-major axis calculated at that timestep 
- - <b>`units`</b>:  km will be constant if no orbital maneauvers 
+   - `units`:  km will be constant if no orbital maneauvers 
  - <b>`ecc`</b>:  Nx1 numpy array of orbit eccentricity calculated at that timestep 
- - <b>`units`</b>:  unitless will be constant if no orbital maneauvers 
+   - `units`:  unitless will be constant if no orbital maneauvers 
  - <b>`inc`</b>:  Nx1 numpy array of orbit inclination calculated at that timestep 
- - <b>`units`</b>:  degree will be constant if no orbital maneauvers 
+   - `units`:  degree will be constant if no orbital maneauvers 
  - <b>`raan`</b>:  Nx1 numpy array of orbit RAAN calculated at that timestep 
- - <b>`units`</b>:  degree will be constant if no orbital maneauvers 
+   - `units`:  degree will be constant if no orbital maneauvers 
  - <b>`argp`</b>:  Nx1 numpy array of orbit Arg Perigee calculated at that timestep 
- - <b>`units`</b>:  degree will be constant if no orbital maneauvers 
+   - `units`:  degree will be constant if no orbital maneauvers 
 
 <a href="../spherapy/orbit.py#L219"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
@@ -97,7 +96,11 @@ __init__(data: OrbitAttrDict, calc_astrobodies: bool = False)
 
 The constructor should never be called directly. 
 
-Use one of:  Orbit.fromTLE()  Orbit.fromListOfPositions()  Orbit.fromPropagatedOrbitalParam()  Orbit.fromAnalyticalOrbitalParam() 
+Use one of:  
+ - Orbit.fromTLE()
+ - Orbit.fromListOfPositions()
+ - Orbit.fromPropagatedOrbitalParam()
+ - Orbit.fromAnalyticalOrbitalParam() 
 
 
 
@@ -164,7 +167,7 @@ fromDummyConstantPosition(
 ) → Orbit
 ```
 
-Creates an static orbit for testing. 
+Creates a static orbit for testing. 
 
 Satellite position is defined by pos, while sun and moon positions are optional, but can also be specified. 
 
@@ -174,14 +177,14 @@ Satellite position is defined by pos, while sun and moon positions are optional,
  
  - <b>`timespan`</b>:  Timespan over which orbit is to be simulated 
  - <b>`pos`</b>:  Nx3 numpy array of cartesian coordinates of the position of the satellite  at each timestamp 
- - <b>`units`</b>:  km 
- - <b>`frame`</b>:  ECI 
+   - `units`:  km 
+   - `frame`:  ECI 
  - <b>`sun_pos`</b>:  [Optional] Nx3 numpy array of cartesian coordinates of the position of the Sun  at each timestamp 
- - <b>`units`</b>:  km 
- - <b>`frame`</b>:  ECI 
+   - `units`:  km 
+   - `frame`:  ECI 
  - <b>`moon_pos`</b>:  [Optional] Nx3 numpy array of cartesian coordinates of the position of the  Moon at each timestamp 
- - <b>`units`</b>:  km 
- - <b>`frame`</b>:  ECI 
+   - `units`:  km 
+   - `frame`:  ECI 
 
 
 
@@ -212,8 +215,8 @@ Creat an obit by explicitly specifying the position of the satellite at each poi
  
  - <b>`timespan`</b>:  Timespan over which orbit is to be simulated 
  - <b>`positions`</b>:  Nx3 numpy array of cartesian coordinates of the position of the satellite  at each timestamp 
- - <b>`units`</b>:  km 
- - <b>`frame`</b>:  ECI 
+   - `units`:  km 
+   - `frame`:  ECI 
  - <b>`astrobodies`</b>:  [Optional] Flag to calculate Sun and Moon positions at timestamps  Default is False 
 
 
@@ -295,8 +298,7 @@ Create an orbit from an existing TLE or a list of historical TLEs.
 
 
 **Returns:**
- 
-------- satplot.Orbit 
+ satplot.Orbit 
 
 ---
 
@@ -360,5 +362,3 @@ Return the velocity at the specified or closest time.
 
 
 ---
-
-_This file was automatically generated via [lazydocs](https://github.com/ml-tooling/lazydocs)._
