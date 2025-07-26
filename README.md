@@ -43,14 +43,14 @@ o = spherapy.orbit.Orbit.fromTLE(t, TLE_paths[0])
 -	from orbital parameters
 ```python
 o = spherapy.orbit.Orbit.fromAnalyticalOrbitalParam(timespan, body='Earth',
-																										 a=6978,
-																										 ecc=0,
-																										 inc=0,
-																										 raan=0,
-																										 argp=0,
-																										 mean_nu=0,
-																										 name='My Analytical Orbit',
-																										 astrobodies=True)
+					 a=6978,
+					 ecc=0,
+					 inc=0,
+					 raan=0,
+					 argp=0,
+					 mean_nu=0,
+					 name='My Analytical Orbit',
+					 astrobodies=True)
 ```  
 
 #### Full TLE example (for copy paste)
@@ -71,14 +71,14 @@ import spherapy.timespan
 import spherapy.orbit
 t = spherapy.timespan.TimeSpan(datetime.datetime(2024,10,15,0,0,1),'1S','90M')
 o = spherapy.orbit.Orbit.fromAnalyticalOrbitalParam(timespan, body='Earth',
-																										 a=6978,
-																										 ecc=0,
-																										 inc=0,
-																										 raan=0,
-																										 argp=0,
-																										 mean_nu=0,
-																										 name='My Analytical Orbit',
-																										 astrobodies=True)
+					 a=6978,
+					 ecc=0,
+					 inc=0,
+					 raan=0,
+					 argp=0,
+					 mean_nu=0,
+					 name='My Analytical Orbit',
+					 astrobodies=True)
 ```
 
 ## SpaceTrack Credentials
