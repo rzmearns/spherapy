@@ -53,6 +53,7 @@ dev = [
 
 [project.scripts]
 spherapy-create-credentials = "spherapy.scripts:create_credentials"
+spherapy-test-basic = "spherapy.scripts:test_basic_functionality"
 
 # [tool.setuptools]
 # include-package-data = true
