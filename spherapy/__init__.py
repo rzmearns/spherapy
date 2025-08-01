@@ -76,10 +76,13 @@ else:
 tle_dir.mkdir(parents=True, exist_ok=True)
 
 # Load credentials
+
+spacetrack_credentials = {'user':None, 'passwd':None}
+# load spacetrack_credentials from the relevant source
 if not use_config_file:
-	spacetrack_credentials = credentials.fetchKeyringCredentials()
+	credentials._reloadCredentials() 			# noqa: SLF001
 else:
-	spacetrack_credentials = credentials.fetchConfigCredentials(config)
+	credentials._reloadCredentials(config) 		# noqa: SLF001
 
 
 packaged_TLEs = _creatPackagedTLEListing() 	#noqa: N816
