@@ -77,7 +77,7 @@ tle_dir.mkdir(parents=True, exist_ok=True)
 
 # Load credentials
 
-spacetrack_credentials = {'user':None, 'passwd':None}
+spacetrack_credentials:dict[str,str|None] = {'user':None, 'passwd':None}
 # load spacetrack_credentials from the relevant source
 if not use_config_file:
 	credentials._reloadCredentials() 			# noqa: SLF001
