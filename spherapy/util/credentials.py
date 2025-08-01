@@ -63,6 +63,12 @@ def _fetchPass(username:str) -> str|None:
 							from keyring.errors.NoKeyringError
 	return password
 
+def _reloadCredentials(config_parser:configparser.ConfigParser|None=None):
+	if config_parser is None:
+		spherapy.spacetrack_credentials = fetchKeyringCredentials()
+	else:
+		spherapy.spacetrack_credentials = fetchConfigCredentials(config_parser)
+
 def storeCredentials(user:None|str=None, passwd:None|str=None) -> bool:
 	"""Store spacetrack credentials in system keyring.
 
@@ -91,7 +97,11 @@ def storeCredentials(user:None|str=None, passwd:None|str=None) -> bool:
 	# check stored credentials match input
 	stored_user = _fetchUser()
 	stored_pass = _fetchPass(stored_user) if stored_user is not None else None
-	return (stored_user == user and stored_pass == passwd)
+	if (stored_user == user and stored_pass == passwd):
+		_reloadCredentials()
+		return True
+
+	return False
 
 def createCredentials():
 	"""Script helper function to create and store credentials.
