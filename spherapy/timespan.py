@@ -112,8 +112,8 @@ class TimeSpan:
 		"""Returns the internal _timearr when the TimeSpan is called."""
 		return self._timearr
 
-	def __getitem__(self, idx:None|int|np.integer|tuple|list|slice=None) \
-						-> None|dt.datetime|np.ndarray[tuple[int], np.dtype[np.datetime64]]:
+	def __getitem__(self, idx:None|int|np.integer|tuple|list|np.ndarray|slice=None) \
+						-> None|dt.datetime|np.ndarray[tuple[int], np.dtype[np.datetime64]]: 	# noqa: PLR0911
 		"""Returns an index or slice of the TimeSpan as an array of datetime objects."""
 		if idx is None:
 			return self._timearr
@@ -125,6 +125,8 @@ class TimeSpan:
 			return self._timearr[idx[0]:idx[1]:idx[2]]
 		if isinstance(idx, list):
 			return self._timearr[[idx]]
+		if isinstance(idx, np.ndarray):
+			return self._timearr[idx]
 		if isinstance(idx,slice):
 			return self._timearr[idx]
 		raise TypeError('index is unknown type')
