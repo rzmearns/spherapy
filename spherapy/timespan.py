@@ -67,9 +67,9 @@ class TimeSpan:
 		else:
 			t0 = t0.replace(tzinfo=dt.timezone.utc)
 
-		self.start = t0
+		self.start:dt.datetime = t0
 		self.time_step:None|dt.timedelta = self._parseTimestep(timestep)
-		self.end = self._parseTimeperiod(t0, timeperiod)
+		self.end:dt.datetime = self._parseTimeperiod(t0, timeperiod)
 		self.time_period = self.end - self.start
 
 		logger.info("Creating TimeSpan between %s and %s with %s seconds timestep",
@@ -107,13 +107,13 @@ class TimeSpan:
 		"""Returns a hash of the timespan."""
 		return hash((self.start, self.end, self.time_step))
 
-    # Make it callable and return the data for that entry
+	# Make it callable and return the data for that entry
 	def __call__(self) -> np.ndarray[tuple[int], np.dtype[np.datetime64]]:
 		"""Returns the internal _timearr when the TimeSpan is called."""
 		return self._timearr
 
-	def __getitem__(self, idx:None|int|np.integer|tuple|list|slice=None) \
-						-> None|dt.datetime|np.ndarray[tuple[int], np.dtype[np.datetime64]]:
+	def __getitem__(self, idx:None|int|np.integer|tuple|list|np.ndarray|slice=None) \
+						-> None|dt.datetime|np.ndarray[tuple[int], np.dtype[np.datetime64]]: 	# noqa: PLR0911
 		"""Returns an index or slice of the TimeSpan as an array of datetime objects."""
 		if idx is None:
 			return self._timearr
@@ -125,6 +125,8 @@ class TimeSpan:
 			return self._timearr[idx[0]:idx[1]:idx[2]]
 		if isinstance(idx, list):
 			return self._timearr[[idx]]
+		if isinstance(idx, np.ndarray):
+			return self._timearr[idx]
 		if isinstance(idx,slice):
 			return self._timearr[idx]
 		raise TypeError('index is unknown type')
@@ -250,6 +252,81 @@ class TimeSpan:
 		res_datetime = cast("dt.datetime", res_datetime)
 
 		return res_datetime, res_index
+
+	def areTimesWithin(self, t_search:dt.datetime|np.ndarray[tuple[int], np.dtype[np.datetime64]])\
+						-> np.ndarray[tuple[int],np.dtype[np.bool_]]:
+		"""Find if the provided times are within the timespan.
+
+		Args:
+			t_search: times to check if within timespan
+				If timezone naive, assumed to be in UTC
+				If timezone aware, will be converted to UTCtime to find
+
+		Returns:
+			ndarray of bools, True if within timespan
+		"""
+		if isinstance(t_search, dt.datetime):
+			if t_search.tzinfo is not None:
+				t_search = t_search.astimezone(dt.timezone.utc)
+			else:
+				t_search = t_search.replace(tzinfo=dt.timezone.utc)
+
+		elif isinstance(t_search, np.ndarray):
+			if t_search[0].tzinfo is not None:
+				t_search = np.vectorize(lambda x:x.astimezone(dt.timezone.utc))(t_search)
+			else:
+				t_search = np.vectorize(lambda x:x.replace(tzinfo=dt.timezone.utc))(t_search)
+
+		else:
+			raise TypeError('t_search is of an unrecognised type,'
+							' should be a datetime object or ndarray')
+
+		return np.logical_and(t_search>np.asarray(self.start), t_search<np.asarray(self.end))
+
+	def getFractionalIndices(self, t_search:dt.datetime|np.ndarray[tuple[int],
+											np.dtype[np.datetime64]])\
+							-> np.ndarray[tuple[int],np.dtype[np.float64]]:
+		"""Find the fractional indices of timespan at wich t_search should be inserted.
+
+		Find the indices in the original timespan at which each value of t_search should be
+		inserted to maintain the sorted order.
+		The integer part of the index indicates the value immediately prior to the value in
+		t_search, while the fractional part represents the point between the two adjacent indices
+		in the timespan at which the t_search value falls.
+		For example (using integers rather than datetime objects:
+			timespan = [0, 1, 5, 6, 10]
+			t_search = [0.5, 2, 3, 8]
+			timespan.getFractionalIndices(t_search) = [0.5, 1.25, 1.5, 3.5]
+		All values of t_search must be within the timespan, otherwise the output is undefined.
+
+		Args:
+			t_search: times to locate within timespan
+				If timezone naive, assumed to be in UTC
+				If timezone aware, will be converted to UTCtime to find
+
+		Returns:
+			ndarray of fractional indices
+		"""
+		if isinstance(t_search, dt.datetime):
+			if t_search.tzinfo is not None:
+				t_search = t_search.astimezone(dt.timezone.utc)
+			else:
+				t_search = t_search.replace(tzinfo=dt.timezone.utc)
+			t_search = np.asarray(t_search)
+		elif isinstance(t_search, np.ndarray):
+			if t_search[0].tzinfo is not None:
+				t_search = np.vectorize(lambda x:x.astimezone(dt.timezone.utc))(t_search)
+			else:
+				t_search = np.vectorize(lambda x:x.replace(tzinfo=dt.timezone.utc))(t_search)
+		else:
+			raise TypeError('t_search is of an unrecognised type, '
+							'should be a datetime object or ndarray')
+
+		post_idxs = np.searchsorted(self._timearr, t_search) 		# type: ignore [arg-type]
+		pre_idxs = post_idxs-1
+		return (t_search - self._timearr[pre_idxs])\
+				/(self._timearr[post_idxs]-self._timearr[pre_idxs]) + pre_idxs
+
 
 	def _parseTimeperiod(self, t0:dt.datetime, timeperiod:str) -> dt.datetime:
 		last_idx = 0
