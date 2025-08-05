@@ -227,6 +227,64 @@ Parameters
 
 ---
 
+<a href="../spherapy/timespan.py#L225"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+### <kbd>method</kbd> `areTimesWithin`
+
+```python
+areTimesWithin(t_search:dt.datetime|np.ndarray[tuple[int], np.dtype[np.datetime64]]) → np.ndarray[tuple[int],np.dtype[np.bool_]]
+```
+
+Find if the provided times are within the timespan.
+
+**Args**: 
+ - <b>`t_search`</b>: times to check if within timespan
+                        If timezone naive, assumed to be in UTC
+                        If timezone aware, will be converted to UTCtime to find
+
+
+**Returns:**
+
+ ndarray of bools, True if within timespan
+
+
+---
+
+<a href="../spherapy/timespan.py#L225"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
+
+### <kbd>method</kbd> `getFractionalIndices`
+
+```python
+getFractionalIndices(t_search:dt.datetime|np.ndarray[tuple[int],np.dtype[np.datetime64]]) → np.ndarray[tuple[int],np.dtype[np.float64]]
+```
+
+Find the fractional indices of timespan at wich t_search should be inserted.
+
+Find the indices in the original timespan at which each value of t_search should be
+        inserted to maintain the sorted order.
+        The integer part of the index indicates the value immediately prior to the value in
+        t_search, while the fractional part represents the point between the two adjacent indices
+        in the timespan at which the t_search value falls.
+        For example (using integers rather than datetime objects:
+            timespan = [0, 1, 5, 6, 10]
+            t_search = [0.5, 2, 3, 8]
+            timespan.getFractionalIndices(t_search) = [0.5, 1.25, 1.5, 3.5]
+        All values of t_search must be within the timespan, otherwise the output is undefined.
+
+
+**Args:**
+- <b>`t_search`</b>: times to locate within timespan
+                If timezone naive, assumed to be in UTC
+                If timezone aware, will be converted to UTCtime to find
+
+
+
+**Returns:**
+ 
+ ndarray of fractional indices
+
+---
+
 <a href="../spherapy/timespan.py#L213"><img align="right" style="float:right;" src="https://img.shields.io/badge/-source-cccccc?style=flat-square"></a>
 
 ### <kbd>method</kbd> `secondsSinceStart`
