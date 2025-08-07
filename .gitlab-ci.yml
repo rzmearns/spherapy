@@ -64,10 +64,21 @@ build:
     - apt-get install -y git
     - pip install build
     - git fetch
+
+    # checking for valid git tag for versioning
     - git checkout $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME
+    # - git fetch --tags || true
+    - git tag --points-at HEAD
     - TAG_ON_BRANCH=$(git tag --points-at HEAD)
-    - if [ -z "$TAG_ON_BRANCH" ]; then
+    - if [[ "$TAG_ON_BRANCH" == "" ]]; then
         echo "A git tag needs to be created on HEAD for package build and publish.";
+        exit 1;
+      fi
+    # detect for diff in CHANGELOG.md
+    - git branch --track $CI_MERGE_REQUEST_TARGET_BRANCH_NAME origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME || true
+    - if [[ $(git diff $CI_MERGE_REQUEST_TARGET_BRANCH_NAME $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME -- CHANGELOG.md | grep "^+.*") == "" ]]; then
+        echo "Diff in CHANGELOG.md not detected";
+        echo "CHANGELOG.md should be updated before publishing";
         exit 1;
       fi
     - python -m build
