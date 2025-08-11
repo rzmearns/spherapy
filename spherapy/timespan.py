@@ -134,6 +134,9 @@ class TimeSpan:
 		if not isinstance(other, TimeSpan):
 			return NotImplemented
 
+		if len(self) != len(other):
+			return False
+
 		return bool(np.all(self.asDatetime() == other.asDatetime()))
 
 	def __add__(self, other:Self) -> 'TimeSpan':
