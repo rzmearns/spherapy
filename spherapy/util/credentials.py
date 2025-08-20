@@ -50,7 +50,8 @@ def _fetchUser() -> str|None:
 		username = keyring.get_password(spherapy.service_name, USERNAME_KEY)
 	except keyring.errors.NoKeyringError:
 		raise ValueError('No Keyring exists on this machine: '
-							'did you forget to set env variable SPHERAPY_CONFIG_DIR') \
+							'did you forget to set env variable SPHERAPY_CONFIG_DIR '
+							'if using on a headless machine?') \
 							from keyring.errors.NoKeyringError
 	return username
 
@@ -102,6 +103,21 @@ def storeCredentials(user:None|str=None, passwd:None|str=None) -> bool:
 		return True
 
 	return False
+
+def clearCredentials() -> None:
+	"""Clear the stored spacetrack credentials.
+
+	Raises:
+		KeyError: If no credentials are currently stored.
+	"""
+	user = _fetchUser()
+	if user is not None:
+		keyring.delete_password(spherapy.service_name, user)
+	else:
+		raise KeyError("No stored USER - no credentials to delete.")
+	keyring.delete_password(spherapy.service_name, USERNAME_KEY)
+
+	_reloadCredentials()
 
 def createCredentials():
 	"""Script helper function to create and store credentials.

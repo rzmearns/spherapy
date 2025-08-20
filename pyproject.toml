@@ -53,6 +53,7 @@ dev = [
 
 [project.scripts]
 spherapy-create-credentials = "spherapy.__main__:create_credentials"
+spherapy-clear-credentials = "spherapy.__main__:clear_credentials"
 
 # [tool.setuptools]
 # include-package-data = true
