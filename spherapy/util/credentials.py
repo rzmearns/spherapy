@@ -50,7 +50,8 @@ def _fetchUser() -> str|None:
 		username = keyring.get_password(spherapy.service_name, USERNAME_KEY)
 	except keyring.errors.NoKeyringError:
 		raise ValueError('No Keyring exists on this machine: '
-							'did you forget to set env variable SPHERAPY_CONFIG_DIR') \
+							'did you forget to set env variable SPHERAPY_CONFIG_DIR '
+							'if using on a headless machine?') \
 							from keyring.errors.NoKeyringError
 	return username
 
