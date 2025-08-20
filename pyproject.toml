@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = 'spherapy'
-version = '0.1.1'
+version = '0.2.0'
 dependencies = [
 		"astropy==5.3.4",
 		"scipy>=1.8.0",
@@ -52,8 +52,7 @@ dev = [
 # Issues = ""
 
 [project.scripts]
-spherapy-create-credentials = "spherapy.scripts:create_credentials"
-spherapy-test-basic = "spherapy.scripts:test_basic_functionality"
+spherapy-create-credentials = "spherapy.__main__:create_credentials"
 
 # [tool.setuptools]
 # include-package-data = true
