@@ -5,7 +5,6 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = 'spherapy'
-version = '0.2.0'
 dependencies = [
 		"astropy==5.3.4",
 		"scipy>=1.8.0",
@@ -33,6 +32,8 @@ description = "An orbital propagator wrapper and TLE fetcher"
 readme = "README.md"
 keywords = ['satellite', 'sgp', 'space', 'orbit']
 
+dynamic = ["version"]
+
 [project.optional-dependencies]
 dev = [
 	"line-profiler==4.2.0",
@@ -58,11 +59,14 @@ spherapy-clear-credentials = "spherapy.__main__:clear_credentials"
 # [tool.setuptools]
 # include-package-data = true
 
-# [tool.setuptools.packages.find]
-# where = ["spherapy"]
+[tool.setuptools.packages.find]
+where = ["spherapy"]
 
 [tool.setuptools.package-data]
 "spherapy.data.TLEs" = ["*.tle"]
+
+[tool.setuptools_scm]
+version_file = "spherapy/_version.py"
 
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.

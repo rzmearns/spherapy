@@ -7,28 +7,89 @@ cache:
   paths:
     - .cache/pip
 
+# Apply the rule globally to all jobs/stages
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: always
+
 before_script:
+
   - python --version
   - pip --version
   - pip install virtualenv
   - virtualenv venv
   - source venv/bin/activate
-  - pip install --editable .[dev]
 
+stages:
+  - check
+  - test
+  - build
+  - publish
 
 lint:
+  stage: check
   script:
     - ruff check
 
+type:
+  stage: check
+  script:
+    - mypy spherapy --disable-error-code=import-untyped
+
 test:
+  stage: test
   image: "python:$VERSION-slim"
   script:
+    - apt-get update
+    - apt-get install -y git
+    - pip install --editable .[dev]
     - export SPHERAPY_CONFIG_DIR='.'
-    - pytest
+    - python -m pytest
   parallel:
     matrix:
       - VERSION: ['3.10','3.11','3.12']
 
-type:
+build:
+  stage: build
+  rules:
+    - if: '$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME == "main"'
+      when: always
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "stable"'
+      when: always
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.d+$/'
+      when: always
   script:
-    - mypy spherapy --disable-error-code=import-untyped
+    - apt-get update
+    - apt-get install -y git
+    - pip install build
+    - git fetch
+
+    # checking for valid git tag for versioning
+    - git checkout $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME
+    # - git fetch --tags || true
+    - git tag --points-at HEAD
+    - TAG_ON_BRANCH=$(git tag --points-at HEAD)
+    - if [[ "$TAG_ON_BRANCH" == "" ]]; then
+        echo "A git tag needs to be created on HEAD for package build and publish.";
+        exit 1;
+      fi
+    # detect for diff in CHANGELOG.md
+    - git branch --track $CI_MERGE_REQUEST_TARGET_BRANCH_NAME origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME || true
+    - if [[ $(git diff $CI_MERGE_REQUEST_TARGET_BRANCH_NAME $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME -- CHANGELOG.md | grep "^+.*") == "" ]]; then
+        echo "Diff in CHANGELOG.md not detected";
+        echo "CHANGELOG.md should be updated before publishing";
+        exit 1;
+      fi
+    - python -m build
+  artifacts:
+    paths:
+      - dist/
+
+publish:
+  stage: publish
+  rules:
+    - when: manual
+  script:
+    - pip install twine
+    - TWINE_PASSWORD=${TEST_PYPI_TOKEN} TWINE_USERNAME=__token__ python -m twine upload --verbose --repository testpypi dist/*
