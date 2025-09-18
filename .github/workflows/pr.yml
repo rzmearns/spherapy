@@ -9,7 +9,7 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "Running lint from merge of ${{ github.ref }} on commit ${{ github.sha }}
+      - run: echo "Running lint from merge of ${{ github.ref }} on commit ${{ github.sha }}"
       - id: lint-checkout
         name: Checkout
         uses: actions/checkout@v5
@@ -28,7 +28,7 @@ jobs:
   type:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "Running static type analysis from merge of ${{ github.ref }} on commit ${{ github.sha }}
+      - run: echo "Running static type analysis from merge of ${{ github.ref }} on commit ${{ github.sha }}"
       - id: type-checkout
         name: Checkout for Typing
         uses: actions/checkout@v5
