@@ -22,10 +22,10 @@ jobs:
       - run: echo "Running build from merge of ${{ github.event.pull_request.head.ref }} on commit ${{ github.event.pull_request.head.sha }}"
       - id: build-checkout
         name: Checkout
-        run: git checkout ${{ github.event.pull_request.head.ref }}
-        # uses: actions/checkout@v5
-        # with:
-        #   fetch-depth: 0
+        # run: git checkout ${{ github.event.pull_request.head.ref }}
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
       - id: build-check-tag
         name: Check Tag
         run: |
@@ -34,6 +34,8 @@ jobs:
           echo "Tag name from GITHUB_REF_NAME: $GITHUB_REF_NAME"
           echo "Tag name from github.ref_name: ${{ github.ref_name }}"
           echo "${{ github.ref }}"
+          echo $(git describe --tag)
+          echo ""
 
         # if [[ "$TAG_ON_BRANCH" == "" ]]; then
         #   echo "A version tag needs to be created on HEAD for package build and publish.";
