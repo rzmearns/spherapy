@@ -1,0 +1,31 @@
+name: release
+
+on: 
+  release:
+    types: [published]
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+    steps:
+      - id: checkout
+        name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - id: install-python
+        name: Set up Python 3.12
+        uses: actions/setup-python@v6
+        with:
+          python-version: 3.12
+          cache: pip
+      - id: install-dependencies
+        name: Install dependencies for Build
+        run: pip install build twine
+      - id: build-run
+        run: python -m build
+      - id: publish-run
+        env:
+          TWINE_USERNAME:__token__
+          TWINE_PASSWORD:${{secrets.TEST_PYPI_TOKEN}}
+        run:  python -m twine upload --verbose --repository testpypi dist/*
