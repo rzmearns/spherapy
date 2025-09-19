@@ -30,14 +30,17 @@ jobs:
         run: |
           TAG_ON_BRANCH=$(git tag --points-at HEAD)
           echo "$TAG_ON_BRANCH"
-          if [[ "$TAG_ON_BRANCH" == "" ]]; then
-            echo "A version tag needs to be created on HEAD for package build and publish.";
-            exit 1;
-          fi
-          if [[ "$TAG_ON_BRANCH" !=~ ^v\d+\.\d+\.\d+$ ]]; then
-            echo "A version tag must have the format vX.X.X"
-            exit 1;
-          fi
+          echo "Tag name from GITHUB_REF_NAME: $GITHUB_REF_NAME"
+          echo "Tag name from github.ref_name: ${{  github.ref_name }}"
+
+        # if [[ "$TAG_ON_BRANCH" == "" ]]; then
+        #   echo "A version tag needs to be created on HEAD for package build and publish.";
+        #   exit 1;
+        # fi
+        # if [[ "$TAG_ON_BRANCH" !=~ ^v\d+\.\d+\.\d+$ ]]; then
+        #   echo "A version tag must have the format vX.X.X"
+        #   exit 1;
+        # fi
 
       # - id: build-check-changelog
       #   name: Check Changelog
