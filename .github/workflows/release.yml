@@ -30,6 +30,7 @@ jobs:
         run: |
           TAG_ON_BRANCH=$(git tag --points-at HEAD)
           if [[ "$TAG_ON_BRANCH" == "" ]]; then
+            if [[ "" =~ ^v\d+\.\d+\.\d+$]]
             echo "A git tag needs to be created on HEAD for package build and publish.";
             exit 1;
           fi
