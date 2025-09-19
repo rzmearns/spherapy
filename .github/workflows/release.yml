@@ -29,13 +29,8 @@ jobs:
       - id: build-check-tag
         name: Check Tag
         run: |
-          TAG_ON_BRANCH=$(git tag --points-at HEAD)
+          TAG_ON_BRANCH=$(git describe --tag | sed 's/-.*$//')
           echo "$TAG_ON_BRANCH"
-          echo "Tag name from GITHUB_REF_NAME: $GITHUB_REF_NAME"
-          echo "Tag name from github.ref_name: ${{ github.ref_name }}"
-          echo "${{ github.ref }}"
-          echo $(git describe --tag)
-          echo ""
 
         # if [[ "$TAG_ON_BRANCH" == "" ]]; then
         #   echo "A version tag needs to be created on HEAD for package build and publish.";
