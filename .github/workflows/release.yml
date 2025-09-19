@@ -1,0 +1,58 @@
+name: Release
+
+on: 
+  pull_request:
+    branches:
+      # target branch is 'stable'
+      # - 'stable'
+      - main
+
+      # coming from "main" into "stable", must be a commit tag that is 3 digit (d.d.d)
+      # install git
+      # pip install build
+
+
+jobs:
+  build:
+    # source branch is 'main'
+    # if: ${{ github.event.pull_request.head.ref }} == 'main'
+    if: ${{ github.event.pull_request.head.ref }} == 'feature/release-automation-github'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Running build from merge of ${{ github.event.pull_request.head.ref }} on commit ${{ github.event.pull_request.head.sha }}"
+      - id: build-checkout
+        name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - id: build-check-tag
+        name: Check Tag
+        run: |
+          TAG_ON_BRANCH=$(git tag --points-at HEAD)
+          if [[ "$TAG_ON_BRANCH" == "" ]]; then
+            echo "A git tag needs to be created on HEAD for package build and publish.";
+            exit 1;
+          fi
+
+      # - id: build-check-changelog
+      #   name: Check Changelog
+      #   run:
+
+  # publish:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - run: echo "Running static type analysis from merge of ${{ github.event.pull_request.head.ref }} on commit ${{ github.event.pull_request.head.sha }}"
+  #     - id: type-checkout
+  #       name: Checkout for Typing
+  #       uses: actions/checkout@v5
+  #     - id: type-install-python
+  #       name: Set up Python 3.12
+  #       uses: actions/setup-python@v6
+  #       with:
+  #         python-version: 3.12
+  #         cache: pip
+  #     - id: type-install-dependencies
+  #       name: Install dependencies for Typing
+  #       run: pip install --editable .[dev]
+  #     - id: type-run
+  #       run: mypy spherapy --disable-error-code=import-untyped
