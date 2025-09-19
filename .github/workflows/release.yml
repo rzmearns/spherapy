@@ -29,12 +29,14 @@ jobs:
         name: Check Tag
         run: |
           TAG_ON_BRANCH=$(git tag --points-at HEAD)
+          echo "$TAG_ON_BRANCH"
           if [[ "$TAG_ON_BRANCH" == "" ]]; then
             echo "A version tag needs to be created on HEAD for package build and publish.";
             exit 1;
           fi
           if [[ "$TAG_ON_BRANCH" !=~ ^v\d+\.\d+\.\d+$ ]]; then
             echo "A version tag must have the format vX.X.X"
+            exit 1;
           fi
 
       # - id: build-check-changelog
