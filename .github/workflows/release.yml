@@ -32,6 +32,7 @@ jobs:
           TAG_ON_BRANCH=$(git describe --tag | sed 's/-.*$//')
           echo "$TAG_ON_BRANCH"
 
+
         # if [[ "$TAG_ON_BRANCH" == "" ]]; then
         #   echo "A version tag needs to be created on HEAD for package build and publish.";
         #   exit 1;
