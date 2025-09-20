@@ -20,6 +20,7 @@ def _creatPackagedTLEListing() -> None|dict[int,pathlib.Path]:
 				except ValueError:
 					print("Can't import packaged TLEs, skipping...") #noqa: T201
 					return None
+				print(path)  #noqa: T201
 				traversable = package_dir.joinpath(f"{path.relative_to('spherapy')}")
 				resource_path = pathlib.Path(f'{traversable}')
 				packaged_tles[tle_id] = resource_path
