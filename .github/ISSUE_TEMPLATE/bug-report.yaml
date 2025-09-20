@@ -71,4 +71,4 @@ body:
 
   - type: markdown
     attributes:
-      value: ':stop_sign: _Make sure you are reporting a problem with spherapy. For general questions, please ask a [question](https://github.com/rzmearns/spherapy/issues)'
+      value: ':stop_sign: _Make sure you are reporting a problem with spherapy. For general questions, please ask a [question](https://github.com/rzmearns/spherapy/issues)_'
