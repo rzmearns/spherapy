@@ -46,21 +46,14 @@ dev = [
 	"types-python-dateutil>=2.9.0",
 	]
 
-# [project.urls]
-# Homepage = ""
-# Documentation = ""
-# Repository = ""
-# Issues = ""
+[project.urls]
+Documentation = "https://rzmearns.github.io/spherapy/"
+Repository = "https://github.com/rzmearns/spherapy"
+Issues = "https://github.com/rzmearns/spherapy/issues"
 
 [project.scripts]
 spherapy-create-credentials = "spherapy.__main__:create_credentials"
 spherapy-clear-credentials = "spherapy.__main__:clear_credentials"
-
-# [tool.setuptools]
-# include-package-data = true
-
-# [tool.setuptools.packages.find]
-# where = ["spherapy"]
 
 [tool.setuptools.package-data]
 "spherapy.data.TLEs" = ["*.tle"]
