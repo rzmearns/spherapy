@@ -1,0 +1,74 @@
+name: Bug Report
+description: Create a new bug report.
+title: '[Bug]: <title>'
+labels: [type:bug]
+body:
+
+  - type: checkboxes
+    attributes:
+      label: Is there an existing issue for this?
+      description: 'Please [search :mag: the issues](https://github.com/rzmearns/spherapy/issues) (open & closed) to check if this bug has already been reported.'
+      options:
+      - label: I have searched the existing issues
+        required: true
+  
+  - type: input
+    attributes:
+      label: Spherapy Version
+      description: What spherapy version are you using?
+      placeholder: Output of `spherapy.__version__`
+    validations:
+      required: true
+
+  - type: checkboxes
+    attributes:
+      label: Is this issue reproducible using the latest spherapy version?
+      description: |
+        You can check the latest spherapy version number at [pypi-spherapy](https://pypi.org/project/spherapy/). If you are not up to date, please try to reproduce your issue after updating.
+      options:
+      - label: I confirm the issue is still reproducible with the latest version
+
+  - type: textarea
+    attributes:
+      label: Current Behaviour
+      description: Describe the problem you are experiencing. Screenshots are welcome. Please enclose copied code in ```.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Expected Behaviour
+      description: Describe what you expect to happen instead.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Environment Details
+      description: |
+        Please provide additional information about your environment; python version, etc.
+
+        :warning: _Remember to redact or remove any sensitive information!_
+      value: |
+          - Python version
+          - Are you running python in a virtual environment
+          - Are you using the default spherapy configuration or using a SPHERAPY_CONFIG_DIR:
+          - Are you using spacetrack credentials, or faling back to celestrak
+          - Last spherapy version(s) which did _not_ exhibit the problem:
+
+  - type: textarea
+    attributes:
+      label: Minimal Reproducible Example
+      description: |
+        Please provide [the smallest, complete code snippet](https://stackoverflow.com/help/minimal-reproducible-example) that spherapy's maintainers can run to reproduce the issue. An easy way to get started is to copy the examples in [README](https://github.com/rzmearns/spherapy/blob/main/README.md) and modify it accordingly. Failing this, any sort of reproduction steps are better than nothing!
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Further Information
+      description: If needed, please provide additional information about your issue (attachments, links, references, etc.).
+
+  - type: markdown
+    attributes:
+      value: ':stop_sign: _Make sure you are reporting a problem with spherapy. For general questions, please ask a [question](https://github.com/rzmearns/spherapy/issues)_'
