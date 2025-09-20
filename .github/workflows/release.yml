@@ -27,5 +27,5 @@ jobs:
       - id: publish-run
         env:
           TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.TEST_PYPI_TOKEN }}
+          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
         run:  python -m twine upload --verbose dist/*
