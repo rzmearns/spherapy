@@ -4,7 +4,7 @@ issue_templates:
     description: "Ask a questino"
     title: "[Question]: "
     labels: ["type:support"]
-    body: "./ISSUE_TEMPLATE/qustion.md"
+    body: "./ISSUE_TEMPLATE/question.md"
   - name: "Bug Report"
     description: "Report a bug with spherapy"
     title: "[Bug]: "
