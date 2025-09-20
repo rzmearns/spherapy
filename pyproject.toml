@@ -58,9 +58,6 @@ spherapy-clear-credentials = "spherapy.__main__:clear_credentials"
 [tool.setuptools.package-data]
 "spherapy.data.TLEs" = ["*.tle"]
 
-[tool.setuptools_scm]
-version_file = "spherapy/_version.py"
-
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.
 exclude = [

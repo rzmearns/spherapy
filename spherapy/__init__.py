@@ -1,5 +1,6 @@
 import configparser
-from importlib import metadata, resources
+import contextlib
+from importlib import PackageNotFoundError, metadata, resources, version
 import os
 import pathlib
 
@@ -28,7 +29,9 @@ def _creatPackagedTLEListing() -> None|dict[int,pathlib.Path]:
 
 service_name = "spherapy"
 service_author = "MSL"
-version = "0.0.2"
+
+with contextlib.suppress(PackageNotFoundError):
+	__version__ = version("package-name")
 
 config_dir_str = os.getenv('SPHERAPY_CONFIG_DIR')
 if config_dir_str is None:
