@@ -6,16 +6,14 @@ labels: type:bug
 assignees: ''
 
 ---
+**Spherapy Version**
+What version of spherapy are you using?
 
 **Describe the bug**
 A clear and concise description of what the bug is.
 
 **To Reproduce**
-Steps to reproduce the behavior:
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
+Steps to reproduce the behavior (if applicable copy the python code):
 
 **Expected behavior**
 A clear and concise description of what you expected to happen.
