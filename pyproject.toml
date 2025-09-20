@@ -59,8 +59,8 @@ spherapy-clear-credentials = "spherapy.__main__:clear_credentials"
 # [tool.setuptools]
 # include-package-data = true
 
-[tool.setuptools.packages.find]
-where = ["spherapy"]
+# [tool.setuptools.packages.find]
+# where = ["spherapy"]
 
 [tool.setuptools.package-data]
 "spherapy.data.TLEs" = ["*.tle"]
