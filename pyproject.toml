@@ -20,12 +20,11 @@ dependencies = [
 requires-python = ">=3.10"
 
 authors = [
-  {name = "Robert Mearns", email = "robert.mearns@unimelb.edu.au"},
-  {name = "Stephen Catsamas", email = "stephen.catsamas@student.unimelb.edu.au"},
+  {name = "Robert Mearns", email = "rz.mearns@gmail.com"}
 ]
 
 maintainers = [
-  {name = "Robert Mearns", email = "robert.mearns@unimelb.edu.au"}
+  {name = "Robert Mearns", email = "rz.mearns@gmail.com"}
 ]
 
 description = "An orbital propagator wrapper and TLE fetcher"
