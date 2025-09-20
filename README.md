@@ -93,8 +93,27 @@ Celestrak holds only the most recent TLE data for each satellite, while Spacetra
 In order to use Spacetrack, you must provide your [Spacetrack credentials](https://www.space-track.org/auth/createAccount) to spherapy.
 
 ## Configuration
-Configuration for spherapy can either use a supplied configuration file, or the system's user data and config directories (default).  
-To use a config file, set the environment variable 'SPHERAPY_CONFIG_DIR' to the location of the `spherapy.conf` file.
+Configuration for spherapy can either use the default settings, or settings specified in a `spherapy.conf` file.
+
+### Default settings
+If the default settings are used, spherapy will use the system user data directory and expect spacetrack credentials to be stored in the system keyring.  
+The default data directories are listed in [Directories](#directories)
+
+### Custom settings
+Custom settings can be specified in a `spherapy.conf` file.  
+This file can be located either in the system user's config file (described in [Directories](#directories)) or at a location specified by the environment variable `SPHERAPY_CONFIG_DIR`.
+
+The fields of `spherapy.conf` are described below
+```ini
+[credentials]
+SpacetrackUser = None 		# the spacetrack user, if left as "None" will source from system keyring
+SpacetrackPasswd = None 	# the spacetrack password, if left as "None" will source from system keyring
+
+[paths]
+# relative paths are assumed to be relative to the location of this file
+# do not quote path
+TLE_path = ./spherapy/data/TLEs 	# the location where TLE files will be saved, if left empty (""), will default to system user's directory.
+```
 
 ### Directories
 If `SPHERAPY_CONFIG_DIR` is not set or `TLE_path` is left empty in `spherapy.conf`, the spherapy default directories will be used:
@@ -139,7 +158,7 @@ spherapy-create-credentials
 ```
 
 ### Configration File Format
-The configuration file should have the following format:
+The configuration file `spherapy.conf` should have the following format:
 ```ini
 [credentials]
 SpacetrackUser = None
