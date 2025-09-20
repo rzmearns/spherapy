@@ -1,5 +1,4 @@
 import configparser
-import contextlib
 from importlib import metadata, resources
 import os
 import pathlib
@@ -21,7 +20,6 @@ def _creatPackagedTLEListing() -> None|dict[int,pathlib.Path]:
 				except ValueError:
 					print("Can't import packaged TLEs, skipping...") #noqa: T201
 					return None
-				print(path)  #noqa: T201
 				traversable = package_dir.joinpath(f"{path.relative_to('spherapy')}")
 				resource_path = pathlib.Path(f'{traversable}')
 				packaged_tles[tle_id] = resource_path
@@ -30,8 +28,11 @@ def _creatPackagedTLEListing() -> None|dict[int,pathlib.Path]:
 service_name = "spherapy"
 service_author = "MSL"
 
-with contextlib.suppress(metadata.PackageNotFoundError):
-	__version__ = metadata.version("package-name")
+try:
+	__version__ = metadata.version(service_name)
+except metadata.PackageNotFoundError:
+	print(f'Version of {service_name} is uknown') #noqa: T201
+	__version__ = "x.x.x"
 
 config_dir_str = os.getenv('SPHERAPY_CONFIG_DIR')
 if config_dir_str is None:
