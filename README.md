@@ -6,7 +6,7 @@ Additionally, rather than use a historical TLE, orbits can be constructed from a
 - install to use the package:
   1. install from git
 ```bash
-pip install git+ssh://git@gitlab.unimelb.edu.au/msl/libraries/spherapy.git
+pip install git+ssh://git+ssh://git@github.com/rzmearns/spherapy.git
 ```
   2. configure. see [Configuration](#configuration)
 - install to develop the package:
@@ -15,7 +15,7 @@ pip install git+ssh://git@gitlab.unimelb.edu.au/msl/libraries/spherapy.git
 ```bash
 pip install --editable .[dev]
 ```
-  3. contribute, see [Contributing](https://gitlab.unimelb.edu.au/msl/libraries/spherapy/-/blob/main/CONTRIBUTING.md)
+  3. contribute, see [Contributing](https://github.com/rzmearns/spherapy/blob/main/CONTRIBUTING.md)
  
 ## Usage
 - ensure spherapy has been configured, see [Configuration](#configuration)

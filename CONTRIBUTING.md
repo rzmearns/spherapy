@@ -1,35 +1,35 @@
 # Contribution Guide
 
 ## How to Contribute
-Almost all communication with the spherapy maintainers should be done through the main spherapy Gitlab repository: https://gitlab.unimelb.edu.au/msl/libraries/spherapy
+Almost all communication with the spherapy maintainers should be done through the main spherapy Github repository: https://github.com/rzmearns/spherapy
 
-- Bug reports and feature requests can be submitted through the [Issues](https://gitlab.unimelb.edu.au/msl/libraries/spherapy/-/issues/) page on the repository. It is critical that sufficient information is provided in the bug report to recreate the problem. Please provide:
+- Bug reports and feature requests can be submitted through the [Issues](https://github.com/rzmearns/spherapy/issues) page on the repository. It is critical that sufficient information is provided in the bug report to recreate the problem. Please provide:
   - The spherapy version
   - The python version
   - A description of the behaviour.
   - The TLE files which resulted in the bug
   - The timespan settings
 
-- Any changes to actual code, including documentation, should be submitted as a merge request on Gitlab.
+- Any changes to actual code, including documentation, should be submitted as a merge request on Github.
   - Please make sure to submit merge requests using a new branch following the [Branch Naming Convention](#branch-naming-convention). Don’t be afraid to create a merge request as soon as the branch is created. It can be always be updated later. Creating them early gives maintainers a chance to provide an early review of your code if that’s something you’re looking for. See below for more information on writing documentation and checking your changes.
   - Make sure you understand the overall architecture of spherapy before adding features.
 
-- No matter how you contribute, spherapy maintainers will try their best to read, research, and respond to your query as soon as possible. For code changes, automated checks and tests will run on Gitlab to provide an initial “review” of your changes.
+- No matter how you contribute, spherapy maintainers will try their best to read, research, and respond to your query as soon as possible. For code changes, automated checks and tests will run on Github to provide an initial “review” of your changes.
 
 ## Submitting Bugs
-Please submit problems or bugs as issues in gitlab, they will be tagged by a maintainer as a `bug`
+Please submit problems or bugs as issues in github, they will be tagged by a maintainer as a `bug`
 
-https://gitlab.unimelb.edu.au/msl/libraries/spherapy/-/issues
+https://github.com/rzmearns/spherapy/issues
 
 ## Submitting Feature Ideas
-Please submit feature ideas as an issue in gitlab, they will be tagged by a maintainer as an `enhancement`
+Please submit feature ideas as an issue in Github, they will be tagged by a maintainer as an `enhancement`
 
-https://gitlab.unimelb.edu.au/msl/libraries/spherapy/-/issues
+https://github.com/rzmearns/spherapy/issues
 
 ## Asking Questions
-Please submit questions as an issue in gitlab, they will be tagged by a maintainer as `support`
+Please submit questions as an issue in Github, they will be tagged by a maintainer as `support`
 
-https://gitlab.unimelb.edu.au/msl/libraries/spherapy/-/issues
+https://github.com/rzmearns/spherapy/issues
 
 ## Adding Features
 If you have a contribution to make to spherapy, please clone the repo, and submit a merge request.  
@@ -61,7 +61,7 @@ source .venv312/bin/activate
 
 ### Clone and install spherapy
 ```
-git clone git@gitlab.unimelb.edu.au:msl/libraries/spherapy.git
+git clone git@github.com:rzmearns/spherapy.git
 pip install --editable .[dev]
 ```
 
@@ -110,7 +110,7 @@ Static typing will be automatically run whenever a commit is made to a merge req
 
 ### pre-commit hooks
 Although not necessary, it is recommended to use [pre-commit](https://pre-commit.com/). The necessary packages will be installed as part of the \[dev\] depenedencies.  
-This runs configured checks on the codebase prior to every commit. The configured checks can be seen in [.pre-commit-config.yaml](https://gitlab.unimelb.edu.au/msl/libraries/spherapy/-/blob/main/.pre-commit-config.yaml)  
+This runs configured checks on the codebase prior to every commit. The configured checks can be seen in [.pre-commit-config.yaml](https://github.com/rzmearns/spherapy/blob/main/.pre-commit-config.yaml)  
 The configured checks for spherapy are:
 - `ruff check`
 - `gitleaks`
