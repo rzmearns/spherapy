@@ -1,4 +1,4 @@
-name: Feature Request
+name: Feature/Documentation Request
 description: Suggest an idea for this project.
 title: "[Feature]: <title>"
 labels: [type:enhancement]
@@ -6,7 +6,7 @@ body:
 
   - type: textarea
     attributes:
-      label: Is your feature request related to a problem?
+      label: Is your feature/documentation request related to a problem?
       description: A clear and concise description of what the problem is. Eg. I'm always frustrated when [...].
     validations:
       required: true
