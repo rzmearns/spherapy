@@ -30,14 +30,14 @@ body:
 
   - type: textarea
     attributes:
-      label: Current Behavior
+      label: Current Behaviour
       description: Describe the problem you are experiencing. Screenshots are welcome. Please enclose copied code in ```.
     validations:
       required: true
 
   - type: textarea
     attributes:
-      label: Expected Behavior
+      label: Expected Behaviour
       description: Describe what you expect to happen instead.
     validations:
       required: true
