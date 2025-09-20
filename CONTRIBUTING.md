@@ -10,8 +10,8 @@ Almost all communication with the spherapy maintainers should be done through th
   - The TLE files which resulted in the bug
   - The timespan settings
 
-- Any changes to actual code, including documentation, should be submitted as a merge request on Github.
-  - Please make sure to submit merge requests using a new branch following the [Branch Naming Convention](#branch-naming-convention). Don’t be afraid to create a merge request as soon as the branch is created. It can be always be updated later. Creating them early gives maintainers a chance to provide an early review of your code if that’s something you’re looking for. See below for more information on writing documentation and checking your changes.
+- Any changes to actual code, including documentation, should be submitted as a pull request on Github.
+  - Please make sure to submit pull requests using a new branch following the [Branch Naming Convention](#branch-naming-convention). Don’t be afraid to create a pull request as soon as the branch is created. It can be always be updated later. Creating them early gives maintainers a chance to provide an early review of your code if that’s something you’re looking for. See below for more information on writing documentation and checking your changes.
   - Make sure you understand the overall architecture of spherapy before adding features.
 
 - No matter how you contribute, spherapy maintainers will try their best to read, research, and respond to your query as soon as possible. For code changes, automated checks and tests will run on Github to provide an initial “review” of your changes.
@@ -32,7 +32,7 @@ Please submit questions as an issue in Github, they will be tagged by a maintain
 https://github.com/rzmearns/spherapy/issues
 
 ## Adding Features
-If you have a contribution to make to spherapy, please clone the repo, and submit a merge request.  
+If you have a contribution to make to spherapy, please clone the repo, and submit a pull request.  
 In order to be considered for merging, the branch must pass the [Linting](#linting), [Testing](#testing) and [Static Typing](#typing) stages of the CI pipeline.  
 For any branch you make, please follow the following branch naming conventions:
 
@@ -81,7 +81,7 @@ Tedious changes, for example sorting the import blocks, can be handled automatic
 ```
 ruff check --fix
 ```
-Linting will be automatically run whenever a commit is made to a merge request.
+Linting will be automatically run whenever a commit is made to a pull request.
 
 ### Testing
 Testing is achieved with pytest and pytest-check. The necessary packages will be installed as part of the \[dev\] depenedencies.  
@@ -95,7 +95,7 @@ tests can be run locally using
 pytest
 ```
 
-Tests will be automatically run whenever a commit is made to a merge request. (The tests will run under python3.10, python3.11 and python3.12)
+Tests will be automatically run whenever a commit is made to a pull request. (The tests will run under python3.10, python3.11 and python3.12)
 
 ### Typing
 spherapy employs static type analysis using mypy (hopefully this will be changed to ty in the future). The necessary packages will be installed as part of the \[dev\] depenedencies.
@@ -106,7 +106,7 @@ mypy spherapy --disable-error-code=import-untyped
 ```
 The `--disable-error-code=import-untyped` flag is necessary to avoid errors with untyped libraries like astropy.
 
-Static typing will be automatically run whenever a commit is made to a merge request.
+Static typing will be automatically run whenever a commit is made to a pull request.
 
 ### pre-commit hooks
 Although not necessary, it is recommended to use [pre-commit](https://pre-commit.com/). The necessary packages will be installed as part of the \[dev\] depenedencies.  

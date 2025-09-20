@@ -1,22 +1,27 @@
 ## About
-Spherapy is a convenience wrapper around the fantastic libraries [skyfield](https://pypi.org/project/skyfield/), [spacetrack](https://pypi.org/project/spacetrack/), and [hapsira](https://pypi.org/project/hapsira/) (a maintained poliastro fork). It provides a consistent and straightforward method to fetch historical TLEs for known satellites, update these TLEs as required, propagate the orbits, and turn these into commonly used variables: satellite positions in various frames, velocities, etc. without worrying about the implementation details of each library.  
-Additionally, rather than use a historical TLE, orbits can be constructed from analytical orbital parameters, propagated orbital parameters, or a list of positions.
+Spherapy is a convenience wrapper around the fantastic libraries [skyfield](https://pypi.org/project/skyfield/), [spacetrack](https://pypi.org/project/spacetrack/), and [hapsira](https://pypi.org/project/hapsira/) (a maintained poliastro fork).
+It provides a consistent and straightforward method to create/propagate orbits without worrying about the implementation details of each library:
+
+- historical TLEs for known satellites (skyfield)
+- propagated orbital parameters hypothetical satellites (skyfield)
+- analytical orbital parameters (hapsira)
+- list of positions
+
+Addtionaly, it provides a straightforward interface for updating used TLEs via [spacetrack](https://www.space-track.org)
+
+Created orbits contain commonly used state variables:
+
+- satellite positions in various frames
+- velocities
+- etc.
 
 ## Installation
-- install to use the package:
-  1. install from git
+1. install the package
 ```bash
-pip install git+ssh://git+ssh://git@github.com/rzmearns/spherapy.git
+pip install spherapy
 ```
-  2. configure. see [Configuration](#configuration)
-- install to develop the package:
-  1. clone the repo
-  2. install as editable
-```bash
-pip install --editable .[dev]
-```
-  3. contribute, see [Contributing](https://github.com/rzmearns/spherapy/blob/main/CONTRIBUTING.md)
- 
+2. configure. see [Configuration](#configuration)
+
 ## Usage
 - ensure spherapy has been configured, see [Configuration](#configuration)
 - import the spherapy package
@@ -82,7 +87,7 @@ o = spherapy.orbit.Orbit.fromAnalyticalOrbitalParam(timespan, body='Earth',
 ```
 
 ## SpaceTrack Credentials
-In order to calculate the position of a satellite at any given time, spherapy requires [TLE information](https://en.wikipedia.org/wiki/Two-line_element_set) for each satellite which is accurate for the given time period (or 'epoch').  
+In order to calculate the position of a historical satellite at any given time, spherapy requires [TLE information](https://en.wikipedia.org/wiki/Two-line_element_set) for each satellite which is accurate for the given time period (or 'epoch').  
 TLE data can be obtained from either [Celestrak](https://celestrak.org/) or [Spacetrack](https://www.space-track.org/). 
 Celestrak holds only the most recent TLE data for each satellite, while Spacetrack will provide historical TLE data. spherapy will fall back to using Celestrak if it cannot authenticate access to Spacetrack.  
 In order to use Spacetrack, you must provide your [Spacetrack credentials](https://www.space-track.org/auth/createAccount) to spherapy.
@@ -151,12 +156,3 @@ TLE_path =
 	- TLEs will be stored in the data directory, with a single file for each satellite ID.
 	 `{sat_id}.tle`, containing all historical TLEs for that satellite.
 	- If celestrak is used instead, the file will be saved as a temporary file `{sat_id}.temptle`, which will be overwritten on each fetch from celestrak.
-
-## Timespan Object
-The timespan object is the base time class of spherapy.
-
-## Orbit Object
-Please see [the orbit documentation](docs/orbit.md)
-
-## Timespan Object
-Please see [the timespan documentation](docs/timespan.md)
