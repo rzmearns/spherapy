@@ -3,6 +3,9 @@ The change log should include
 - changes in API
 - changes in model behaviour
 
+# v0.2.1
+- minor bug fixes to the API for pulling TLEs from Celestrak
+
 # v0.2.0
 - initial release to pypi
 - timespan object
