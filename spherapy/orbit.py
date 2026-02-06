@@ -661,7 +661,7 @@ class Orbit:
 					Default is 'Analytical'
 			astrobodies: [Optional] Flag to calculate Sun and Moon positions at timestamps
 					Default is False
-			unsafe: [Optional] Flag to ignore semi-major axis inside Earth's radius
+			unsafe: [Optional] Flag to ignore semi-major axis inside the body's radius
 					Default is False
 
 		Returns:
