@@ -121,6 +121,7 @@ fromAnalyticalOrbitalParam(
     raan: float = 0,
     argp: float = 0,
     mean_nu: float = 0,
+    epoch: datetime | None = None,
     name: str = 'Analytical',
     astrobodies: bool = True,
     unsafe: bool = False
@@ -138,13 +139,14 @@ Orbits created using this class method will NOT respect gravity corrections such
  - <b>`timespan`</b>:  Timespan over which orbit is to be simulated 
  - <b>`body`</b>:  [Optional] string indicating around what body the satellite orbits,  Default is 'Earth'  Options are ['Earth','Sun','Mars','Moon'] 
  - <b>`a`</b>:  [Optional] semi-major axis of the orbit in km  Default is 6978 ~ 600km above the earth. 
- - <b>`ecc`</b>:  [Optional] eccentricty, dimensionless number 0 < ecc < 1  Default is 0, which is a circular orbit 
+ - <b>`ecc`</b>:  [Optional] eccentricity, dimensionless number 0 <= ecc < 1. Default is 0, which is a circular orbit.
  - <b>`inc`</b>:  [Optional] inclination of orbit in degrees  Default is 0, which represents an orbit around the Earth's equator 
  - <b>`raan`</b>:  [Optional] right-ascension of the ascending node  Default is 0 
  - <b>`argp`</b>:  [Optional] argument of the perigee in degrees  Default is 0, which     represents an orbit with its semimajor axis in  the plane of the Earth's equator 
- - <b>`mean_nu`</b>:  [Optional] mean anomaly in degrees  Default is 0, which represents an orbit that is beginning at periapsis 
+ - <b>`mean_nu`</b>:  [Optional] mean anomaly at epoch in degrees. Default is 0 (periapsis).
+ - <b>`epoch`</b>:  [Optional] datetime defining the epoch of the orbital parameters. Defaults to the first timestamp of the timespan; a naive datetime is interpreted as UTC.
  - <b>`name`</b>:  [Optional] string giving the name of the orbit  Default is 'Analytical' 
- - <b>`astrobodies`</b>:  [Optional] Flag to calculate Sun and Moon positions at timestamps  Default is False 
+ - <b>`astrobodies`</b>:  [Optional] Flag to calculate Sun and Moon positions and eclipses at timestamps. Default is True.
  - <b>`unsafe`</b>:  [Optional] Flag to ignore semi-major axis inside Earth's radius  Default is False 
 
 

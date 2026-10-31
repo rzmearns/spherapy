@@ -13,17 +13,19 @@ import typing
 from typing import Any, TypedDict, cast
 
 from astropy import units as astropy_units
+from astropy.coordinates import GCRS, ICRS, get_body_barycentric
 from astropy.time import Time as astropyTime
-from hapsira.bodies import Earth, Mars, Moon, Sun
-from hapsira.ephem import Ephem
-from hapsira.twobody import Orbit as hapsiraOrbit
 import numpy as np
+
+# Cyice 8.3.0 accesses np.typing at import time; NumPy 1.x needs it loaded explicitly.
+from numpy.typing import NDArray  # noqa: TC002
 from sgp4.api import WGS72, Satrec
 
 # Don't need to import all of skyfield just for EarthSatellite loading.
 # TODO: figure out the lightest import to use
 from skyfield.api import EarthSatellite, load, wgs84
 from skyfield.framelib import itrs
+from spiceypy import cyice
 
 from spherapy.timespan import TimeSpan
 from spherapy.util import epoch_u, exceptions
@@ -31,6 +33,15 @@ import spherapy.util.constants as consts
 import spherapy.util.orbital_u as orbit_u
 
 logger = logging.getLogger(__name__)
+
+# Gravitational parameters in km^3/s^2 used by Hapsira 0.18.0. Retain these
+# values when changing propagators so that existing trajectories keep their periods.
+_ANALYTICAL_GM = {
+	'EARTH': 398600.4418,
+	'SUN': 132712442099.0,
+	'MARS': 42828.3744,
+	'MOON': 4902.79981,
+}
 
 
 class OrbitAttrDict(TypedDict):
@@ -277,21 +288,16 @@ class Orbit:
 			raise AttributeError('Error in creating Orbit object, no generator type assigned')
 
 		if calc_astrobodies:
+			# Preserve the existing ephemeris time convention and geocentric frame.
+			epochs = self.timespan.asAstropy(scale='tdb')
+			frame = GCRS(obstime=epochs)
 			logger.info('Creating ephemeris for Sun using timespan')
-			# Timescale for sun position calculation should use TDB, not UTC
-			# The resultant difference is likely very small
-			ephem_sun = Ephem.from_body(Sun,
-										astropyTime(self.timespan.asAstropy(scale='tdb')),
-										attractor=Earth)
-			sun_pos = ephem_sun.rv()[0]
-			self.sun_pos = np.asarray(sun_pos.to(astropy_units.km))
+			sun = ICRS(get_body_barycentric('sun', epochs)).transform_to(frame)
+			self.sun_pos = sun.cartesian.xyz.to_value(astropy_units.km).T
 
 			logger.info('Creating ephemeris for Moon using timespan')
-			ephem_moon = Ephem.from_body(Moon,
-											astropyTime(self.timespan.asAstropy(scale='tdb')),
-											attractor=Earth)
-			moon_pos = ephem_moon.rv()[0]
-			self.moon_pos = np.asarray(moon_pos.to(astropy_units.km))
+			moon = ICRS(get_body_barycentric('moon', epochs)).transform_to(frame)
+			self.moon_pos = moon.cartesian.xyz.to_value(astropy_units.km).T
 			self.eclipse = self._calcEclipse(self.pos, self.sun_pos)
 
 	#pos_list
@@ -626,7 +632,7 @@ class Orbit:
 											inc:float=0,
 											raan:float=0,
 											argp:float=0,
-											true_nu:float=0,
+											mean_nu:float=0,
 											epoch:dt.datetime|None=None,
 											name:str='Analytical',
 											astrobodies:bool=True,
@@ -643,7 +649,7 @@ class Orbit:
 					Options are ['Earth','Sun','Mars','Moon']
 			a: [Optional] semi-major axis of the orbit in km
 					Default is 6978 ~ 600km	above the earth.
-			ecc: [Optional] eccentricty, dimensionless number 0 < ecc < 1
+			ecc: [Optional] eccentricity, dimensionless number 0 <= ecc < 1
 					Default is 0, which is a circular orbit
 			inc: [Optional] inclination of orbit in degrees
 					Default is 0, which represents an orbit around the Earth's equator
@@ -652,7 +658,7 @@ class Orbit:
 			argp: [Optional] argument of the perigee in degrees
 					Default is 0, which	represents an orbit with its semimajor axis in
 					the plane of the Earth's equator
-			true_nu: [Optional] true anomaly at epoch in degrees
+			mean_nu: [Optional] mean anomaly at epoch in degrees
 					Default is 0, which represents an orbit that is beginning
 					at periapsis on the epoch
 			epoch: [Optional] epoch for orbit
@@ -660,7 +666,7 @@ class Orbit:
 			name: [Optional] string giving the name of the orbit
 					Default is 'Analytical'
 			astrobodies: [Optional] Flag to calculate Sun and Moon positions at timestamps
-					Default is False
+					Default is True
 			unsafe: [Optional] Flag to ignore semi-major axis inside Earth's radius
 					Default is False
 
@@ -668,16 +674,12 @@ class Orbit:
 			satplot.Orbit
 		"""
 		if body.upper() == 'EARTH':
-			central_body = Earth
 			min_a = consts.R_EARTH + consts.EARTH_MIN_ALT
 		elif body.upper() == 'SUN':
-			central_body = Sun
 			min_a = consts.R_SUN + consts.SUN_MIN_ALT
 		elif body.upper() == 'MARS':
-			central_body = Mars
 			min_a = consts.R_MARS + consts.MARS_MIN_ALT
 		elif body.upper() == 'MOON':
-			central_body = Moon
 			min_a = consts.R_MOON + consts.MOON_MIN_ALT
 		else:
 			logger.error("Invalid central body %s. Valid options are Earth, Sun, Mars, Moon", body)
@@ -689,14 +691,14 @@ class Orbit:
 				raise exceptions.OutOfRangeError(f"Semimajor axis, {a}, is too close "
 											f"to the central body, {body.upper()}")
 
-		if ecc > 1 or ecc < 0:
+		if ecc >= 1 or ecc < 0:
 			logger.error("Eccentricity, %s, is non circular or eliptical", ecc)
 			raise exceptions.OutOfRangeError(f"Eccentricity, {ecc}, is non circular or eliptical")
 
 		if inc > 180 or inc < -180: 			#noqa: PLR2004
-			logger.error("Inclination, %s, is out of range, should be -180 < inc < 180", inc)
+			logger.error("Inclination, %s, is out of range, should be -180 <= inc <= 180", inc)
 			raise exceptions.OutOfRangeError(f"Inclination, {inc}, is out of range, "
-										f"should be -180 < inc < 180")
+											f"should be -180 <= inc <= 180")
 
 		if raan > 360 or raan < 0: 				#noqa: PLR2004
 			logger.error("RAAN, %s, is out of range, should be 0 < inc < 360", inc)
@@ -709,10 +711,11 @@ class Orbit:
 			raise exceptions.OutOfRangeError(f"Argument of periapsis, {raan}, is out of "
 										f"range, should be 0 < argp < 360")
 
-		if true_nu > 360 or true_nu < 0: 		#noqa: PLR2004
-			logger.error("True anomaly, %s, is out of range, should be 0 < true_nu < 360", true_nu)
-			raise exceptions.OutOfRangeError(f"True anomaly, {true_nu}, is out of range, "
-										f"should be 0 < true_nu < 360")
+		if mean_nu > 360 or mean_nu < 0: 		#noqa: PLR2004
+			logger.error("Mean anomaly, %s, is out of range, "
+						"should be 0 <= mean_nu <= 360", mean_nu)
+			raise exceptions.OutOfRangeError(f"Mean anomaly, {mean_nu}, is out of range, "
+										f"should be 0 <= mean_nu <= 360")
 
 		if epoch is None:
 			epoch = timespan[0]
@@ -729,24 +732,23 @@ class Orbit:
 
 
 		logger.info("Creating analytical orbit")
-		orb = hapsiraOrbit.from_classical(central_body,
-											a * astropy_units.one * astropy_units.km,
-											ecc * astropy_units.one,
-											inc * astropy_units.one * astropy_units.deg,
-											raan * astropy_units.one * astropy_units.deg,
-											argp * astropy_units.one * astropy_units.deg,
-											true_nu * astropy_units.one * astropy_units.deg,
-											astropy_epoch
-											)
+		gm = _ANALYTICAL_GM[body.upper()]
+		# Reduce in degrees before converting to radians, preserving small inbound
+		# anomalies near 360 degrees and making 0 and 360 exactly equivalent.
+		mean_anomaly = np.deg2rad(mean_nu if mean_nu <= 180 else mean_nu - 360)  # noqa: PLR2004
+		# SPICE expects periapsis distance, radians, mean anomaly and GM in km^3/s^2.
+		# The two-body equations depend only on elapsed time: use a zero epoch to
+		# preserve precision and Astropy's elapsed SI seconds (including leap seconds).
+		elements: NDArray[np.float64] = np.array([
+			a * (1 - ecc), ecc, np.deg2rad(inc), np.deg2rad(raan),
+			np.deg2rad(argp), mean_anomaly, 0.0, gm,
+		])
+		elapsed = (timespan.asAstropy() - astropy_epoch).to_value(astropy_units.s)
+		states = cyice.conics(np.tile(elements, (len(timespan), 1)), elapsed)
+		pos = states[:, :3]
+		vel = states[:, 3:] * 1000
 
-
-		logger.info("Creating ephemeris for orbit, using timespan")
-		ephem = Ephem.from_orbit(orb, timespan.asAstropy())
-
-		pos = np.asarray(ephem.rv()[0], dtype=np.float64)
-		vel = np.asarray(ephem.rv()[1], dtype=np.float64) * 1000
-
-		period = float(orb.period.unit.in_units('s') * orb.period.value)
+		period = float(2 * np.pi * np.sqrt(a**3 / gm))
 		if timespan.time_step is not None:
 			period_steps = int(period / timespan.time_step.total_seconds())
 		else:
