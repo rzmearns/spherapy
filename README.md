@@ -1,10 +1,10 @@
 ## About
-Spherapy is a convenience wrapper around the fantastic libraries [skyfield](https://pypi.org/project/skyfield/), [spacetrack](https://pypi.org/project/spacetrack/), and [hapsira](https://pypi.org/project/hapsira/) (a maintained poliastro fork).
+Spherapy is a convenience wrapper around the fantastic libraries [skyfield](https://pypi.org/project/skyfield/), [spacetrack](https://pypi.org/project/spacetrack/), and [SpiceyPy](https://pypi.org/project/spiceypy/) (a Python interface to NASA/JPL's SPICE toolkit).
 It provides a consistent and straightforward method to create/propagate orbits without worrying about the implementation details of each library:
 
 - historical TLEs for known satellites (skyfield)
 - propagated orbital parameters hypothetical satellites (skyfield)
-- analytical orbital parameters (hapsira)
+- analytical orbital parameters (SpiceyPy)
 - list of positions
 
 Addtionaly, it provides a straightforward interface for updating used TLEs via [spacetrack](https://www.space-track.org)
@@ -53,7 +53,7 @@ o = spherapy.orbit.Orbit.fromAnalyticalOrbitalParam(timespan, body='Earth',
 					 inc=0,
 					 raan=0,
 					 argp=0,
-					 true_nu=0,
+					 mean_nu=0,
 					 name='My Analytical Orbit',
 					 astrobodies=True)
 ```  
@@ -81,7 +81,7 @@ o = spherapy.orbit.Orbit.fromAnalyticalOrbitalParam(timespan, body='Earth',
 					 inc=0,
 					 raan=0,
 					 argp=0,
-					 true_nu=0,
+					 mean_nu=0,
 					 name='My Analytical Orbit',
 					 astrobodies=True)
 ```

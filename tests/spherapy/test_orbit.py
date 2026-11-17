@@ -4,9 +4,11 @@ import pytest
 from pytest_check import check
 import pathlib
 import numpy as np
+import spiceypy
 from spherapy import orbit
 from spherapy import timespan
 from spherapy import updater
+from spherapy.util import constants as consts
 from spherapy.util import orbital_u
 import spherapy.util.exceptions as exceptions
 import datetime as dt
@@ -46,8 +48,8 @@ def propagationData(pytestFillPackagedData:None) -> dict: 			#noqa: ARG001
 	data['o_ftle_astro'] = orbit.Orbit.fromPropagatedOrbitalParam(data['t'], a=(6378 + 600), ecc=0, inc=45, raan=0, argp=0, mean_nu=0, astrobodies=True)
 
 	# Analytic from orbital param
-	data['o_analytical'] = orbit.Orbit.fromAnalyticalOrbitalParam(data['t'], a=(6378 + 600), ecc=0, inc=45, raan=0, argp=0, true_nu=0)
-	data['o_analytical_astro'] = orbit.Orbit.fromAnalyticalOrbitalParam(data['t'], a=(6378 + 600), ecc=0, inc=45, raan=0, argp=0, true_nu=0, astrobodies=True)
+	data['o_analytical'] = orbit.Orbit.fromAnalyticalOrbitalParam(data['t'], a=(6378 + 600), ecc=0, inc=45, raan=0, argp=0, mean_nu=0)
+	data['o_analytical_astro'] = orbit.Orbit.fromAnalyticalOrbitalParam(data['t'], a=(6378 + 600), ecc=0, inc=45, raan=0, argp=0, mean_nu=0, astrobodies=True)
 
 	# From list of position
 	data['o_poslist'] = orbit.Orbit.fromListOfPositions(data['t'], data['pos'])
@@ -58,6 +60,12 @@ def propagationData(pytestFillPackagedData:None) -> dict: 			#noqa: ARG001
 	data['o_static_astro'] = orbit.Orbit.fromDummyConstantPosition(data['t'], np.zeros((len(data['t']),3)), sun_pos=np.ones((len(data['t']),3)), moon_pos=-1*np.ones((len(data['t']),3)))
 
 	return data
+
+
+@pytest.fixture
+def sample_timespan() -> timespan.TimeSpan:
+	return timespan.TimeSpan(dt.datetime(2024, 1, 1, tzinfo=dt.timezone.utc), '1M', '4M')
+
 
 def test_TLEGenAttributes(propagationData:dict):
 	'''
@@ -548,6 +556,41 @@ def test_unsafe(propagationData:dict):
 	orbit.Orbit.fromPropagatedOrbitalParam(propagationData['t'], a=(6378 - 600), ecc=0, inc=45, raan=0, argp=0, mean_nu=0, unsafe=True)
 	orbit.Orbit.fromPropagatedOrbitalParam(propagationData['t'], a=(6378 - 600), ecc=0, inc=45, raan=0, argp=0, mean_nu=0, unsafe=True)
 
+@pytest.mark.parametrize(('body', 'a', 'gm'), [
+	('eArTh', 10000, 398600.4418),
+	('Sun', 150000000, 132712442099.0),
+	('Mars', 6000, 42828.3744),
+	('Moon', 3000, 4902.79981),
+])
+def test_conic_arguments_and_output_units(
+	sample_timespan:timespan.TimeSpan, body:str, a:float, gm:float,
+):
+	epoch = sample_timespan.start + dt.timedelta(minutes=2)
+	o = orbit.Orbit.fromAnalyticalOrbitalParam(
+		sample_timespan, body=body, a=a, ecc=0.25, inc=-37.4, raan=123.7, argp=68.9,
+		mean_nu=247.3, epoch=epoch, astrobodies=False,
+	)
+	# Compare the wrapper with real SPICE given explicitly specified elements and
+	# elapsed times. SPICE supplies the reference orbit; no solver is reimplemented.
+	elements = [
+		a * 0.75,            # Periapsis distance, a * (1 - ecc) [km]
+		0.25,                # Eccentricity [dimensionless]
+		np.deg2rad(-37.4),   # Inclination [rad]
+		np.deg2rad(123.7),   # Right ascension of the ascending node [rad]
+		np.deg2rad(68.9),    # Argument of periapsis [rad]
+		np.deg2rad(-112.7),  # Mean anomaly at epoch: 247.3 - 360 degrees [rad]
+		0,                   # Reference epoch; elapsed times are relative to this zero [s]
+		gm,                  # Central body's gravitational parameter [km^3/s^2]
+	]
+	states = np.array([spiceypy.conics(elements, elapsed) for elapsed in [-120, -60, 0, 60, 120]])
+	np.testing.assert_allclose(o.pos, states[:, :3], rtol=1e-12, atol=1e-7)
+	np.testing.assert_allclose(o.vel, states[:, 3:] * 1000, rtol=1e-12, atol=1e-7)
+	assert o.central_body == body
+	assert o.sun_pos is None
+	assert o.moon_pos is None
+	assert o.eclipse is None
+
+
 def test_analyticalValidity():
 		'''
 		Tests to check pos and vel values are sensible for an orbit
@@ -556,7 +599,7 @@ def test_analyticalValidity():
 		t0 = dt.datetime(2021, 1, 1, 0, 0, 1)
 		t = timespan.TimeSpan(t0, '1S', '180M')
 		a = 6378+600
-		o = orbit.Orbit.fromAnalyticalOrbitalParam(t, a=a, ecc=0, inc=45, raan=0, argp=0, true_nu=0)
+		o = orbit.Orbit.fromAnalyticalOrbitalParam(t, a=a, ecc=0, inc=45, raan=0, argp=0, mean_nu=0)
 
 		# Circular orbit should have the same semi-major for its duration
 		check.is_true(np.all(np.isclose(np.linalg.norm(o.pos, axis=1), a)))
@@ -572,12 +615,12 @@ def test_fromAnalyticalOrbitalParams_epoch():
 
 		t0 = dt.datetime.fromisoformat('2026-03-20T14:46:00+00:00') # this is the vernal equinox so sun should be at raan
 		t = timespan.TimeSpan(t0, '1S', '1S')
-		o = orbit.Orbit.fromAnalyticalOrbitalParam(t, a=6378+600, ecc=0.4, inc=45, raan=0, argp=0, true_nu=0)
+		o = orbit.Orbit.fromAnalyticalOrbitalParam(t, a=6378+600, ecc=0.4, inc=45, raan=0, argp=0, mean_nu=0)
 
 		def unit_vector(v : NDArray) -> NDArray:
 			return v/np.linalg.norm(v)
 
-		# an orbit with raan=argp=true_nu=0 with epoch at vernal equinox should be at the sub solar point
+		# an orbit with raan=argp=mean_nu=0 with epoch at vernal equinox should be at the sub solar point
 		check.is_true(np.all(np.isclose(unit_vector(o.pos[0]), unit_vector(o.sun_pos[0]), atol=0.01)))
 
 def test_fromAnalyiticalOrbitalParams_epoch_timespan_sampling():
@@ -590,8 +633,8 @@ def test_fromAnalyiticalOrbitalParams_epoch_timespan_sampling():
 		ts1 = timespan.TimeSpan(t0, '1M', '180M')
 		ts2 = timespan.TimeSpan(t0 + dt.timedelta(minutes=1), '2M', '180M')
 
-		o1 = orbit.Orbit.fromAnalyticalOrbitalParam(ts1, a=6378+400, ecc=0.2, inc=10, raan=18, argp=76, true_nu=23, epoch=ts1[0])
-		o2 = orbit.Orbit.fromAnalyticalOrbitalParam(ts2, a=6378+400, ecc=0.2, inc=10, raan=18, argp=76, true_nu=23, epoch=ts1[0])
+		o1 = orbit.Orbit.fromAnalyticalOrbitalParam(ts1, a=6378+400, ecc=0.2, inc=10, raan=18, argp=76, mean_nu=23, epoch=ts1[0])
+		o2 = orbit.Orbit.fromAnalyticalOrbitalParam(ts2, a=6378+400, ecc=0.2, inc=10, raan=18, argp=76, mean_nu=23, epoch=ts1[0])
 
 
 		check.is_true(
@@ -600,3 +643,56 @@ def test_fromAnalyiticalOrbitalParams_epoch_timespan_sampling():
 					o2.pos[:-1,:],
 					atol=0.01
 				)))
+
+
+# JPL Horizons reference values, retrieved 2026-10-30 (DE441).
+# https://ssd.jpl.nasa.gov/horizons/app.html
+#
+# Ephemeris Type: Observer Table
+# Target Body: Sun (10), then Moon (301)
+# Observer Location: Geocentric (500@399)
+#
+# Time Specification: List of times
+#   2024-01-01 00:00:00
+#   2024-04-08 18:00:00
+#   2024-06-21 00:00:00
+#
+# Table Settings:
+#   Quantities: 1. Astrometric RA & DEC; 20. Observer range & range-rate
+#   Reference frame: ICRF
+#   Time scale: UT; time-zone offset: +00:00
+#   RA/Dec format: Decimal degrees
+#   Extra precision: Yes
+#   Range units: AU
+#   Time precision: Seconds
+#   CSV output: Yes
+#
+# Reference columns: RA [degrees], DEC [degrees], delta [AU].
+JPL_REFERENCE_POSITIONS = [
+	('sun', '2024-01-01T00:00:00+00:00', 280.565284528, -23.080633867, 0.98331828203968),
+	('sun', '2024-04-08T18:00:00+00:00', 17.583304390, 7.460262561, 1.00150357631780),
+	('sun', '2024-06-21T00:00:00+00:00', 89.771084241, 23.435765708, 1.01620306065032),
+	('moon', '2024-01-01T00:00:00+00:00', 158.798119090, 12.752317296, 0.00270481348636),
+	('moon', '2024-04-08T18:00:00+00:00', 17.267800731, 7.687905352, 0.00240498560967),
+	('moon', '2024-06-21T00:00:00+00:00', 255.084404718, -27.290991265, 0.00256964256480),
+]
+
+
+@pytest.mark.parametrize(('body', 'epoch', 'ra_deg', 'dec_deg', 'distance_au'), JPL_REFERENCE_POSITIONS)
+def test_astrobodies_against_jpl(
+	body:str, epoch:str, ra_deg:float, dec_deg:float, distance_au:float,
+):
+	t = timespan.TimeSpan(dt.datetime.fromisoformat(epoch), '1S', '1S')
+	# Use supplied satellite positions so SPICE propagation is not involved.
+	o = orbit.Orbit.fromListOfPositions(
+		t, np.tile([7000., 0., 0.], (len(t), 1)), astrobodies=True,
+	)
+	positions = getattr(o, f'{body}_pos')
+	assert positions.shape == (len(t), 3)
+	position = positions[0]
+	distance_km = np.linalg.norm(position)
+	ra, dec = np.deg2rad([ra_deg, dec_deg])
+	expected_direction = np.array([np.cos(dec) * np.cos(ra), np.cos(dec) * np.sin(ra), np.sin(dec)])
+	separation = np.rad2deg(np.arccos(np.clip(np.dot(position / distance_km, expected_direction), -1, 1)))
+	assert separation < 0.05
+	assert distance_km == pytest.approx(distance_au * consts.AU, rel=1e-3)
