@@ -136,7 +136,7 @@ Orbits created using this class method will NOT respect gravity corrections such
 **Args:**
  
  - <b>`timespan`</b>:  Timespan over which orbit is to be simulated 
- - <b>`body`</b>:  [Optional] string indicating around what body the satellite orbits,  Default is 'Earth'  Options are ['Earth','Sun','Mars','Moon'] 
+ - <b>`body`</b>:  [Optional] string indicating around what body the satellite orbits,  Currently only 'Earth' (the default) is supported.
  - <b>`a`</b>:  [Optional] semi-major axis of the orbit in km  Default is 6978 ~ 600km above the earth. 
  - <b>`ecc`</b>:  [Optional] eccentricty, dimensionless number 0 < ecc < 1  Default is 0, which is a circular orbit 
  - <b>`inc`</b>:  [Optional] inclination of orbit in degrees  Default is 0, which represents an orbit around the Earth's equator 

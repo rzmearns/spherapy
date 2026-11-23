@@ -14,7 +14,7 @@ from typing import Any, TypedDict, cast
 
 from astropy import units as astropy_units
 from astropy.time import Time as astropyTime
-from hapsira.bodies import Earth, Mars, Moon, Sun
+from hapsira.bodies import Earth, Moon, Sun
 from hapsira.ephem import Ephem
 from hapsira.twobody import Orbit as hapsiraOrbit
 import numpy as np
@@ -639,8 +639,7 @@ class Orbit:
 		Args:
 			timespan: Timespan over which orbit is to be simulated
 			body: [Optional] string indicating around what body the satellite orbits,
-					Default is 'Earth'
-					Options are ['Earth','Sun','Mars','Moon']
+					Currently only 'Earth' (the default) is supported.
 			a: [Optional] semi-major axis of the orbit in km
 					Default is 6978 ~ 600km	above the earth.
 			ecc: [Optional] eccentricty, dimensionless number 0 < ecc < 1
@@ -667,22 +666,11 @@ class Orbit:
 		Returns:
 			satplot.Orbit
 		"""
-		if body.upper() == 'EARTH':
-			central_body = Earth
-			min_a = consts.R_EARTH + consts.EARTH_MIN_ALT
-		elif body.upper() == 'SUN':
-			central_body = Sun
-			min_a = consts.R_SUN + consts.SUN_MIN_ALT
-		elif body.upper() == 'MARS':
-			central_body = Mars
-			min_a = consts.R_MARS + consts.MARS_MIN_ALT
-		elif body.upper() == 'MOON':
-			central_body = Moon
-			min_a = consts.R_MOON + consts.MOON_MIN_ALT
-		else:
-			logger.error("Invalid central body %s. Valid options are Earth, Sun, Mars, Moon", body)
-			raise ValueError(f"Invalid central body {body}.")
+		if body.upper() != 'EARTH':
+			logger.error("Analytical orbits currently support only Earth, got %r.", body)
+			raise ValueError(f"Analytical orbits currently support only Earth, got {body!r}.")
 
+		min_a = consts.R_EARTH + consts.EARTH_MIN_ALT
 		if a < min_a:
 			logger.error("Semimajor axis, %s, is too close to the central body, {body.upper()}", a)
 			if not unsafe:
@@ -729,7 +717,7 @@ class Orbit:
 
 
 		logger.info("Creating analytical orbit")
-		orb = hapsiraOrbit.from_classical(central_body,
+		orb = hapsiraOrbit.from_classical(Earth,
 											a * astropy_units.one * astropy_units.km,
 											ecc * astropy_units.one,
 											inc * astropy_units.one * astropy_units.deg,

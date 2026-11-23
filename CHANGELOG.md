@@ -3,6 +3,10 @@ The change log should include
 - changes in API
 - changes in model behaviour
 
+# Unreleased
+
+- **Breaking:** Removed support for Sun, Mars, and Moon as central bodies in `Orbit.fromAnalyticalOrbitalParam()` due to incorrect astrobody coordinates relative to non-Earth bodies. Passing a non-Earth body raises `ValueError`.
+
 # v0.3.0
  - renamed fromAnalyticalOrbitalParams() argument mean_nu to true_nu to reflect the underlying api call to hapsira.
  - added an epoch argument for the orbital parameters of fromAnalyticalOrbitalParams(). Note the default epoch for fromAnalyticalOrbitalParams() is now the first timestep of the TimeSpan rather than astropy's J2000. This is a breaking change and thus existing calls to fromAnalyticalOrbitalParams() will almost certainly now produce different results. The previous functionality can be obtained by choosing datetime.datetime.fromisoformat('2000-01-01T12:00:00+00:00') as the epoch.
